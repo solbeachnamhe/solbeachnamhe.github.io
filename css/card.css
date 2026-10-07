@@ -134,6 +134,34 @@ section.view { padding: 0; }
   color: var(--ink-soft);
 }
 
+/* 내 섬 찾기 (2026-10-07): 그날 몇 번째 섬, 작품 화면 수평선의 자리 */
+.today {
+  margin: 30px 24px 0;
+  padding: 0;
+  text-align: center;
+}
+.today[hidden] { display: none; }
+.today-order {
+  margin: 0 0 12px;
+  font-family: var(--serif);
+  font-size: 17px;
+  font-weight: 600;
+  word-break: keep-all;
+}
+.today-map svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+}
+.today-note {
+  margin: 10px 0 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--ink-soft);
+  word-break: keep-all;
+}
+
 .place {
   margin: 28px 24px 0;
   padding: 18px 20px;

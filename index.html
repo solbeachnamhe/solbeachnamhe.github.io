@@ -10,7 +10,7 @@
   <meta name="robots" content="noindex">
   <meta name="theme-color" content="#3d88c1">
   <title>몽돌의 소원</title>
-  <link rel="stylesheet" href="css/card.css?v=20261007c">
+  <link rel="stylesheet" href="css/card.css?v=20261007d">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
 </head>
 <body>
@@ -46,6 +46,14 @@
     <section class="stamp-wrap" aria-label="해안선 도장">
       <div id="stamp" class="stamp"></div>
       <p class="stamp-note">당신의 목소리로 그린 해안선</p>
+    </section>
+
+    <!-- 내 섬 찾기 (2026-10-07 작가): 그날 몇 번째로 솟은 섬인지, 작품 화면 수평선의 어느 자리에 떠 있는지 -->
+    <section id="today" class="today" aria-label="그날의 군도에서 내 섬" hidden>
+      <p class="label">그날의 군도에서</p>
+      <p id="today-order" class="today-order"></p>
+      <div id="today-map" class="today-map"></div>
+      <p id="today-note" class="today-note"></p>
     </section>
 
     <section class="place" aria-label="남해에서 가 볼 곳">
@@ -90,6 +98,6 @@
   </section>
 
   <!-- ?v=: 바뀐 파일을 휴대폰이 예전 것으로 기억하지 않게 (바꿀 때마다 날짜를 올린다) -->
-  <script type="module" src="js/card.js?v=20261007c"></script>
+  <script type="module" src="js/card.js?v=20261007d"></script>
 </body>
 </html>
