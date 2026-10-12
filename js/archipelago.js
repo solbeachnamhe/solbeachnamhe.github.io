@@ -73,16 +73,18 @@ export function slotView(i) {
   return { screen, row: cell.row, size };
 }
 
-/** 작품 화면 수평선을 줄인 그림 (SVG 글자): 오늘의 군도 열 자리, 내 자리는 따뜻한 빛으로 */
+/** 작품 화면 수평선을 줄인 그림 (SVG 글자): 오늘의 군도 열 자리를 먹빛 실루엣으로 (먼 겹일수록 옅게),
+ *  내 자리는 인주 빛으로. 2026-10-12 소원증 "섬의 증서": 종이 위 선 그림 (전에는 파란 하늘과 바다 사각형) */
 export function archipelagoMapSVG(order) {
-  const W = 320, H = 92, horizon = 62;
+  const W = 320, H = 84, horizon = 58;
+  const INK = "31,42,43", SEAL = "#b23a2c";
   const mine = order % SLOTS;
   const mounds = [];
   for (let i = 0; i < SLOTS; i++) {
     const v = slotView(i);
     const w = 40 * v.size, hgt = w * 0.34;
     const cx = ((v.screen - VIEW[0]) / (VIEW[1] - VIEW[0])) * W;  // 군도가 있는 가운데 쪽만 넓혀 그린다
-    const fill = i === mine ? "#e8a35c" : ["#4f7fae", "#6d97c2", "#8eb0d3"][v.row];
+    const fill = i === mine ? SEAL : `rgba(${INK},${[0.42, 0.26, 0.15][v.row]})`;
     mounds.push({ i, cx, w, hgt, fill, row: v.row });
   }
   mounds.sort((a, b) => b.row - a.row);  // 먼 겹부터 그린다
@@ -90,11 +92,13 @@ export function archipelagoMapSVG(order) {
     `<path d="M${(m.cx - m.w / 2).toFixed(1)} ${horizon} Q${m.cx.toFixed(1)} ${(horizon - m.hgt * 2).toFixed(1)} ` +
     `${(m.cx + m.w / 2).toFixed(1)} ${horizon} Z" fill="${m.fill}"/>`).join("");
   const me = mounds.find((m) => m.i === mine);
-  const pinY = horizon - me.hgt - 12;
+  const top = horizon - me.hgt - 8;
+  const waves = [66, 72, 78].map((y, k) =>  // 물결 몇 줄
+    `<path d="M${16 + k * 22} ${y} H${W - 16 - k * 22}" stroke="rgba(${INK},${0.12 - k * 0.03})" stroke-width="1"/>`).join("");
   return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="작품 화면 수평선에서 내 섬의 자리">
-<defs><linearGradient id="mapsky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3d88c1"/><stop offset="1" stop-color="#a9cbe6"/></linearGradient></defs>
-<rect width="${W}" height="${horizon}" fill="url(#mapsky)"/><rect y="${horizon}" width="${W}" height="${H - horizon}" fill="#2f6c9e"/>
 ${shapes}
-<path d="M${me.cx.toFixed(1)} ${(pinY + 8).toFixed(1)} l-5 -8 h10 z" fill="#fff"/>
-<circle cx="${me.cx.toFixed(1)}" cy="${(pinY - 4).toFixed(1)}" r="5" fill="#fff"/></svg>`;
+<path d="M0 ${horizon} H${W}" stroke="rgba(${INK},0.45)" stroke-width="1"/>
+${waves}
+<path d="M${me.cx.toFixed(1)} ${(top - 14).toFixed(1)} V${top.toFixed(1)}" stroke="${SEAL}" stroke-width="1.2"/>
+<circle cx="${me.cx.toFixed(1)}" cy="${(top - 17).toFixed(1)}" r="3" fill="${SEAL}"/></svg>`;
 }

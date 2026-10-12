@@ -3,101 +3,100 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <!-- 이 페이지는 아무것도 밖으로 보내지 않는다: 서버 요청(connect), 폼 전송, 외부 스크립트를 모두 막는다 -->
+  <!-- 이 페이지는 아무것도 밖으로 보내지 않는다: 서버 요청(connect), 폼 전송, 외부 스크립트를 모두 막는다. 글꼴도 이 페이지 안의 것만 -->
   <meta http-equiv="Content-Security-Policy"
         content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; font-src 'self'; connect-src 'none'; form-action 'none'; base-uri 'none'; object-src 'none'; frame-src 'none'">
   <meta name="referrer" content="no-referrer">
   <meta name="robots" content="noindex">
-  <meta name="theme-color" content="#3d88c1">
+  <meta name="theme-color" content="#f4f0e8">
   <title>몽돌의 소원</title>
-  <link rel="stylesheet" href="css/card.css?v=20261007d">
+  <link rel="preload" href="fonts/mongdol-serif-700.woff" as="font" type="font/woff" crossorigin>
+  <link rel="preload" href="fonts/mongdol-sans-400.woff" as="font" type="font/woff" crossorigin>
+  <link rel="stylesheet" href="css/card.css?v=20261012c">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
 </head>
 <body>
+  <!-- 2026-10-12 디자인 "섬의 증서": 종이, 여백, 도장. 첫 화면은 섬 그림 하나와 저장 버튼 (2026-10-07 작가 1안),
+       같은 자리에서 3D 섬으로 돌려 본다. 아래는 바다의 대답과 번호 붙은 네 칸 -->
   <main class="card">
-    <header class="head">
-      <p class="brand">몽돌의 소원</p>
-      <h1 id="island-name">소원의 섬</h1>
-      <p id="island-date" class="date"></p>
-      <p id="island-revisits" class="revisits" hidden></p>
-    </header>
-
-    <!-- 첫 화면: 섬 그림과 저장 버튼 하나 (2026-10-07 작가 1안: 소원증의 첫 목적은 섬 그림을 받아 가는 것) -->
-    <section class="picture" aria-label="내 섬 그림">
-      <div class="picture-frame">
+    <section class="hero" aria-label="내 섬">
+      <p class="wordmark">몽돌의 소원</p>
+      <div class="stage">
         <img id="picture" alt="내 섬 그림. 다시 찾아올 때 비출 QR이 함께 담겨 있어요" hidden>
-        <p id="picture-wait" class="picture-wait">섬 그림을 그리는 중이에요…</p>
+        <canvas id="island" aria-label="손가락으로 돌려 볼 수 있는 섬" hidden></canvas>
+        <p id="picture-wait" class="picture-wait">섬을 그리는 중이에요</p>
+        <button id="turn" class="chip" type="button" aria-pressed="false" hidden>
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13.2 6.2A5.4 5.4 0 1 0 13.4 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M13.6 2.6v3.8H9.8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>돌려 보기</span>
+        </button>
       </div>
-      <button id="save-picture" type="button" disabled>사진첩에 저장</button>
+      <h1 id="island-name">소원의 섬</h1>
+      <p id="island-date" class="meta"></p>
+      <p id="island-revisits" class="revisits" hidden></p>
+      <button id="save-picture" class="primary" type="button" disabled>사진첩에 저장</button>
       <p id="save-how" class="save-how"></p>
       <p id="save-status" class="status" role="status"></p>
     </section>
 
-    <section class="view" aria-label="내 섬 돌려 보기">
-      <canvas id="island" aria-label="손가락으로 돌려 볼 수 있는 섬"></canvas>
-      <p class="hint">손가락으로 돌려 보세요</p>
-    </section>
-
     <section class="answer" aria-label="바다의 대답">
-      <p class="label">바다의 대답</p>
-      <p id="answer" class="answer-line"></p>
+      <p class="eyebrow">바다의 대답</p>
+      <p id="answer" class="quote"></p>
+      <figure class="seal">
+        <div id="stamp" class="stamp"></div>
+        <figcaption>목소리로 그린 해안선</figcaption>
+      </figure>
     </section>
 
-    <section class="stamp-wrap" aria-label="해안선 도장">
-      <div id="stamp" class="stamp"></div>
-      <p class="stamp-note">당신의 목소리로 그린 해안선</p>
-    </section>
-
-    <!-- 내 섬 찾기 (2026-10-07 작가): 그날 몇 번째로 솟은 섬인지, 작품 화면 수평선의 어느 자리에 떠 있는지 -->
-    <section id="today" class="today" aria-label="그날의 군도에서 내 섬" hidden>
-      <p class="label">그날의 군도에서</p>
-      <p id="today-order" class="today-order"></p>
-      <div id="today-map" class="today-map"></div>
-      <p id="today-note" class="today-note"></p>
-    </section>
-
-    <section class="place" aria-label="남해에서 가 볼 곳">
-      <p class="label">남해에서 가 볼 곳</p>
-      <p id="place-name" class="place-name"></p>
-      <p id="place-where" class="place-where"></p>
-      <p id="place-line" class="place-line"></p>
-    </section>
-
-    <section class="return" aria-label="다시 찾아왔을 때">
-      <p class="label">다시 찾아왔을 때</p>
-      <canvas id="return-qr" aria-label="다시 방문용 QR"></canvas>
-      <p class="return-note">소원이 이루어지면 다시 와서, 이 QR을 화면 위 카메라에 <strong>한 뼘 거리</strong>까지 가까이
-        비춰 주세요. 당신의 섬이 바다에서 다시 솟아오릅니다.</p>
-      <p class="return-tip">휴대폰 화면을 가장 밝게 하면 더 잘 읽혀요. 배경화면에도 같은 QR이 들어 있어요.</p>
-    </section>
-
-    <section class="memo" aria-label="나만의 소원">
-      <p class="label">나만의 소원 적어두기</p>
-      <p class="memo-note">바다에 말한 소원은 어디에도 남지 않았어요. 기억하고 싶다면 여기에 적어 두세요.
-        이 글은 <strong>이 휴대폰의 이 소원증 페이지 안에만</strong> 남고 (사진첩이나 파일이 아니에요), 어디로도 보내지 않아요.
-        이 소원증을 다시 열면 그대로 보여요.</p>
-      <textarea id="memo-text" rows="4" maxlength="500" placeholder="나만 보는 소원" autocomplete="off"></textarea>
-      <div class="memo-buttons">
-        <button id="memo-save" type="button">적은 글 남겨 두기</button>
-        <button id="memo-clear" type="button" class="quiet">지우기</button>
-      </div>
-      <p id="memo-status" class="status" role="status"></p>
-    </section>
+    <ol class="ledger">
+      <!-- 내 섬 찾기 (2026-10-07 작가): 그날 몇 번째로 솟은 섬인지, 작품 화면 수평선의 어느 자리에 떠 있는지 -->
+      <li id="today" class="entry" hidden>
+        <p class="entry-head">그날의 군도에서</p>
+        <p id="today-order" class="entry-title"></p>
+        <div id="today-map" class="today-map"></div>
+        <p id="today-note" class="entry-note"></p>
+      </li>
+      <li class="entry">
+        <p class="entry-head">남해에서 가 볼 곳</p>
+        <p id="place-name" class="entry-title"></p>
+        <p id="place-where" class="entry-sub"></p>
+        <p id="place-line" class="entry-body"></p>
+      </li>
+      <li class="entry">
+        <p class="entry-head">다시 찾아올 때</p>
+        <p class="entry-body">소원이 이루어지면 다시 와서, 이 QR을 화면 위 카메라에 <strong>한 뼘 거리</strong>까지
+          비춰 주세요. 당신의 섬이 바다에서 다시 솟아오릅니다.</p>
+        <div class="qr-tile"><canvas id="return-qr" aria-label="다시 방문용 QR"></canvas></div>
+        <p class="entry-note">화면을 가장 밝게 하면 더 잘 읽혀요. 저장한 배경화면에도 같은 QR이 들어 있어요.</p>
+      </li>
+      <li class="entry">
+        <details id="memo" class="memo">
+          <summary class="entry-head">나만의 소원 적어두기</summary>
+          <p class="entry-note">바다에 말한 소원은 어디에도 남지 않았어요. 기억하고 싶다면 여기에 적어 두세요.
+            이 글은 <strong>이 휴대폰의 이 소원증 안에만</strong> 남고, 어디로도 보내지 않아요. 다시 열면 그대로 보여요.</p>
+          <textarea id="memo-text" rows="4" maxlength="500" placeholder="나만 보는 소원" autocomplete="off"></textarea>
+          <div class="memo-buttons">
+            <button id="memo-save" type="button" class="small">남겨 두기</button>
+            <button id="memo-clear" type="button" class="small quiet">지우기</button>
+          </div>
+          <p id="memo-status" class="status" role="status"></p>
+        </details>
+      </li>
+    </ol>
 
     <footer class="foot">
-      <p id="footer-line" class="footer-line"></p>
-      <p class="where">남해 소노 호텔 · 인터랙티브 미디어 아트</p>
-      <p class="privacy">이 페이지는 아무 정보도 모으거나 보내지 않습니다. 섬 모양은 주소에 담긴 숫자로만 다시 그립니다.</p>
+      <p id="footer-line" class="closing"></p>
+      <p class="fine">남해 소노 호텔 · 인터랙티브 미디어 아트</p>
+      <p class="fine">이 페이지는 아무 정보도 모으거나 보내지 않습니다. 섬은 주소에 담긴 숫자로만 다시 그립니다.</p>
     </footer>
   </main>
 
   <section class="missing-msg" aria-live="polite">
-    <p class="brand">몽돌의 소원</p>
+    <p class="wordmark">몽돌의 소원</p>
     <h1>섬을 찾을 수 없어요</h1>
     <p>설치 화면의 QR을 휴대폰 카메라로 다시 비춰 주세요.</p>
   </section>
 
   <!-- ?v=: 바뀐 파일을 휴대폰이 예전 것으로 기억하지 않게 (바꿀 때마다 날짜를 올린다) -->
-  <script type="module" src="js/card.js?v=20261007d"></script>
+  <script type="module" src="js/card.js?v=20261012c"></script>
 </body>
 </html>

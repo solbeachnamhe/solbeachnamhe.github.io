@@ -255,7 +255,7 @@ function skyBackground(top, mid, horizon) {
   return tex;
 }
 
-export function createIslandView(canvas, { heightmap, elements, mood, seedText, tone = 0, autoRotate = true }) {
+export function createIslandView(canvas, { heightmap, elements, mood, seedText, tone = 0, autoRotate = true, active = true }) {
   const renderer = new WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: "low-power" });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.toneMapping = ACESFilmicToneMapping;
@@ -305,13 +305,13 @@ export function createIslandView(canvas, { heightmap, elements, mood, seedText, 
 
   const camera = new PerspectiveCamera(32, 1, 5, radius * 80);
   // 설치 화면은 섬을 해변에서 바라본다: 섬 기준 왼쪽 앞(−10.5°)에서 거의 수평
-  const view = { azimuth: MathUtils.degToRad(-10.5), elevation: MathUtils.degToRad(5), target: peak * 0.25 };
+  // fill: 섬(땅의 반지름)이 화면 가로에서 차지하는 몫. 배경화면은 여백을 두려고 줄인다 (wallpaper.js)
+  const view = { azimuth: MathUtils.degToRad(-10.5), elevation: MathUtils.degToRad(5), target: peak * 0.25, fill: 0.95 };
 
   function place(aspect) {
     camera.aspect = aspect;
-    // 섬(땅의 반지름)이 화면 가로를 거의 채우게
     const halfH = Math.atan(Math.tan(MathUtils.degToRad(camera.fov / 2)) * aspect);
-    const dist = radius / Math.tan(halfH) / 0.95;
+    const dist = radius / Math.tan(halfH) / view.fill;
     scene.fog.near = dist * 0.55;  // 설치 화면처럼 섬에도 옅은 안개, 수평선은 하늘과 섞이게
     scene.fog.far = dist * 3.2;
     camera.position.set(
@@ -369,19 +369,26 @@ export function createIslandView(canvas, { heightmap, elements, mood, seedText, 
     requestAnimationFrame(loop);
   }
   function setRunning(on) {
+    on = on && active;  // 섬 그림을 보고 있을 때(캔버스가 숨었을 때)는 돌리지 않는다
     if (on === running) return;
     running = on;
     lastT = 0;
     if (on) requestAnimationFrame(loop);
   }
   document.addEventListener("visibilitychange", () => setRunning(!document.hidden));
-  window.addEventListener("resize", () => { resize(); render(); });
+  window.addEventListener("resize", () => { if (active) { resize(); render(); } });
 
   resize();
   render();
   setRunning(!document.hidden);
 
   return {
+    /** 캔버스를 보이거나 숨긴 뒤 부른다: 보일 때만 크기를 맞추고 돈다 */
+    setActive(on) {
+      active = on;
+      if (on) { resize(); render(); lastInput = performance.now() - 3000; }
+      setRunning(!document.hidden);
+    },
     /** 지금 보이는 섬을 w×h 그림으로 (배경화면용). 화면 캔버스를 잠깐 그 크기로 그린 뒤 되돌린다. */
     snapshot(w, h, frame = {}) {
       const saved = { ...view };

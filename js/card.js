@@ -5,12 +5,13 @@
 import { ANSWERS, CARD_FOOTER, ISLAND_NAMES, PLACES } from "./content.js";
 import { place } from "./elements.js";
 import { generate } from "./generator.js";
-import { createIslandView } from "./island3d.js";
+// ?v=: 2026-10-12 바뀐 파일. 휴대폰이 예전 것을 기억하지 않게 (index.html의 card.js?v=와 같이 올린다)
+import { createIslandView } from "./island3d.js?v=20261012c";
 import { fromString, seedDate, tone } from "./seed.js";
-import { stampSVG } from "./stamp.js";
+import { stampSVG } from "./stamp.js?v=20261012c";
 import { cardUrl, qrCanvas } from "./qr.js";
-import { makeWallpaper } from "./wallpaper.js";
-import { archipelagoMapSVG } from "./archipelago.js";
+import { makeWallpaper } from "./wallpaper.js?v=20261012c";
+import { archipelagoMapSVG } from "./archipelago.js?v=20261012c";
 
 const $ = (id) => document.getElementById(id);
 
@@ -33,11 +34,11 @@ function showToday(order, cardDate, dateText) {
   const now = new Date();
   const today = now.getFullYear() === cardDate.getUTCFullYear() && now.getMonth() === cardDate.getUTCMonth()
     && now.getDate() === cardDate.getUTCDate();
-  $("today-order").textContent = `${dateText}, 남해에 ${order + 1}번째로 솟은 섬`;
+  $("today-order").textContent = `남해에 ${order + 1}번째로 솟은 섬`;
   $("today-map").innerHTML = archipelagoMapSVG(order);
   $("today-note").textContent = today
-    ? "작품 화면 수평선의 이 자리에 떠 있어요. 뒤로 새 섬이 열 개 더 솟으면 자리를 물려주고 바다 멀리 물러나요."
-    : "그날 작품 화면 수평선의 이 자리에 떠 있었어요.";
+    ? "오늘 작품 화면 수평선의 이 자리에 떠 있어요. 뒤로 새 섬이 열 개 더 솟으면 자리를 물려주고 바다 멀리 물러나요."
+    : `${dateText}, 작품 화면 수평선의 이 자리에 떠 있었어요.`;
   $("today").hidden = false;
 }
 
@@ -61,7 +62,10 @@ function setupMemo(seedText) {
   const area = $("memo-text"), status = $("memo-status");
   area.value = store.get();
   const show = (msg) => { status.textContent = msg; };
-  if (area.value) show("이 휴대폰에 적어 둔 소원이에요.");
+  if (area.value) {  // 적어 둔 글이 있으면 펼쳐서 연다
+    $("memo").open = true;
+    show("이 휴대폰에 적어 둔 소원이에요.");
+  }
   $("memo-save").addEventListener("click", () => {
     const v = area.value.trim();
     show(store.set(v) ? (v ? "남겨 두었어요. 이 소원증을 다시 열면 보여요." : "지웠어요.") : "이 브라우저에서는 남길 수 없어요 (사생활 보호 모드).");
@@ -97,7 +101,7 @@ function setupSave(file) {
   const canShare = !!(navigator.canShare && navigator.canShare({ files: [file] }));
   const touch = matchMedia("(pointer: coarse)").matches;
   const android = /Android/.test(navigator.userAgent);
-  how.textContent = canShare ? "누르면 나오는 창에서 “이미지 저장”을 고르세요."
+  how.textContent = canShare ? "나오는 창에서 “이미지 저장”을 고르면 배경화면으로 쓸 수 있어요."
     : touch ? `그림을 길게 누른 뒤 ${android ? "“이미지 다운로드”를" : "“사진 앱에 저장”을"} 누르면 사진첩에 들어가요.`
       : "그림 파일로 받아요.";
   button.disabled = false;
@@ -120,6 +124,22 @@ function setupSave(file) {
   });
 }
 
+// 돌려 보기: 섬 그림 자리에서 3D 섬으로 바꾼다 (2026-10-12: 섬과 이름이 세 번 나오던 것을 한 자리로) -----------
+
+function setupTurn(view) {
+  const button = $("turn"), img = $("picture"), canvas = $("island");
+  const set = (on) => {
+    canvas.hidden = !on;
+    img.hidden = on;
+    button.setAttribute("aria-pressed", String(on));
+    button.querySelector("span").textContent = on ? "그림으로" : "돌려 보기";
+    view.setActive(on);
+  };
+  button.hidden = false;
+  button.addEventListener("click", () => set(button.getAttribute("aria-pressed") !== "true"));
+  return set;
+}
+
 // 시작 ------------------------------------------------------------------------
 
 function main() {
@@ -134,9 +154,9 @@ function main() {
   const date = formatDate(seedDate(seed));
   const cat = seed.category;
   const url = cardUrl(full);  // 다시 방문용 QR에도 번호를 둔다 (웹캠은 번호를 버리고 섬만 읽는다)
-  const info = { name: ISLAND_NAMES[cat], answer: ANSWERS[cat], stamp: stampSVG(hm, date.short), qr: url };
+  const info = { name: ISLAND_NAMES[cat], answer: ANSWERS[cat], stamp: stampSVG(hm, date.short), qr: url,
+    date: date.long, order };
 
-  document.body.classList.toggle("sunset", mood.sky === "sunset");
   $("island-name").textContent = info.name;
   $("island-date").textContent = `${date.long}, 남해 바다에서`;
   if (seed.revisits > 0) {
@@ -151,15 +171,22 @@ function main() {
   $("place-name").textContent = p.name;
   $("place-where").textContent = `경남 남해군 ${p.where}`;
   $("place-line").textContent = p.line;
-  $("footer-line").textContent = CARD_FOOTER;
+  $("footer-line").textContent = CARD_FOOTER.replace(", ", ",\n");
 
-  const still = new URLSearchParams(location.search).has("still");  // 비교용 (tools/compare_island.py): 스스로 돌지 않음
+  // 비교용 (tools/compare_island.py): 스스로 돌지 않고, 처음부터 3D 섬을 보인다
+  const still = new URLSearchParams(location.search).has("still");
   const view = createIslandView($("island"), { heightmap: hm, elements, mood, seedText: text, tone: tone(seed),
-    autoRotate: !still });
+    autoRotate: !still, active: false });
   setupMemo(text);
   document.body.classList.add("ready");
-  preparePicture(view, info).then(setupSave).catch(() => {
-    $("picture-wait").textContent = "그림을 만들지 못했어요. 아래 섬을 화면 캡처해 두셔도 돼요.";
+  preparePicture(view, info).then((file) => {
+    setupSave(file);
+    const turn = setupTurn(view);
+    if (still) turn(true);
+  }).catch(() => {  // 그림을 못 만들면 3D 섬을 보이고, 화면 캡처를 권한다
+    $("picture-wait").hidden = true;
+    $("save-how").textContent = "그림을 만들지 못했어요. 섬을 화면 캡처해 두셔도 돼요.";
+    setupTurn(view)(true);
   });
 }
 

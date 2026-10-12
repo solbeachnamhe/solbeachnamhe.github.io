@@ -98,7 +98,7 @@ export function stampSVG(hm, dateText) {
     <circle cx="100" cy="100" r="84" stroke-width="1.5"/>
     <circle cx="100" cy="100" r="62" stroke-width="1"/>
     <path d="${path}" fill="${INK}" fill-opacity="0.9" stroke-width="1.2" stroke-linejoin="round"/>
-    <g fill="${INK}" stroke="none" font-family="'Noto Serif KR','AppleMyungjo','Batang',serif" font-weight="700">
+    <g fill="${INK}" stroke="none" font-family="'Mongdol Serif','Noto Serif KR','AppleMyungjo','Batang',serif" font-weight="700">
       <text font-size="15" letter-spacing="3" text-anchor="middle"><textPath href="#ringTop" startOffset="50%">南海 · 몽돌의 소원</textPath></text>
       <text font-size="12" letter-spacing="2" text-anchor="middle" dominant-baseline="hanging"><textPath href="#ringBottom" startOffset="50%">${dateText}</textPath></text>
     </g>

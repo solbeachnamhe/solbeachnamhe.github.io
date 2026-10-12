@@ -1,14 +1,22 @@
-/* 소원증. 색은 docs/ART_DIRECTION.md (설치 화면과 같은 맑은 날 남해 하늘과 바다), 도장은 인주 빛. */
+/* 소원증 "섬의 증서" (2026-10-12). 종이 한 장, 먹 한 가지, 인주 한 가지. 하늘과 바다의 색은 섬 그림 안에만 둔다.
+   글꼴은 이 페이지 안의 것만 (web/fonts, tools/make_web_fonts.py): 명조 = 고운바탕, 고딕 = Pretendard에서 쓰는 글자만 남긴 것.
+   글자 크기는 여섯 가지: 12 · 13 · 15 · 20 · 23 · 30 */
+
+@font-face { font-family: "Mongdol Serif"; font-weight: 400; font-display: swap; src: url("../fonts/mongdol-serif-400.woff") format("woff"); }
+@font-face { font-family: "Mongdol Serif"; font-weight: 700; font-display: swap; src: url("../fonts/mongdol-serif-700.woff") format("woff"); }
+@font-face { font-family: "Mongdol Sans"; font-weight: 400; font-display: swap; src: url("../fonts/mongdol-sans-400.woff") format("woff"); }
+@font-face { font-family: "Mongdol Sans"; font-weight: 500; font-display: swap; src: url("../fonts/mongdol-sans-500.woff") format("woff"); }
+
 :root {
-  --sky: #3d88c1;  /* 맑은 날 파란 하늘 위쪽 (2026-10-05 설치 화면에 맞춤, 전 옅은 하늘색 #d3e1ec). js/island3d.js SKY와 같게 */
-  --paper: #e9e5dc;
-  --ink: #2c3a3a;
-  --ink-soft: #5b6868;
-  --seal: #b3372b;
-  --sea: #476d8f;  /* 짙은 파랑 바다 (전 #6e9499) */
-  --line: rgba(44, 58, 58, 0.14);
-  --serif: "Noto Serif KR", "AppleMyungjo", "Nanum Myeongjo", "Batang", serif;
-  --sans: "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif;
+  --paper: #f4f0e8;
+  --paper-deep: #ebe5d9;
+  --ink: #1f2a2b;
+  --ink-2: #5f6a6a;      /* 작은 글씨도 종이 위 대비 5:1 */
+  --rule: rgba(31, 42, 43, 0.14);
+  --seal: #b23a2c;       /* 인주 */
+  --serif: "Mongdol Serif", "AppleMyungjo", "Noto Serif KR", serif;
+  --sans: "Mongdol Sans", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif;
+  --gutter: 28px;
 }
 
 * { box-sizing: border-box; }
@@ -18,346 +26,383 @@ html, body {
   background: var(--paper);
   color: var(--ink);
   font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.65;
+  letter-spacing: -0.005em;
   -webkit-text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased;
 }
 
 body { min-height: 100vh; }
+p { margin: 0; }
+strong { font-weight: 500; color: var(--ink); }
 
 .card {
-  max-width: 560px;
+  max-width: 480px;
   margin: 0 auto;
-  padding: 0 0 calc(40px + env(safe-area-inset-bottom));
+  padding-bottom: calc(40px + env(safe-area-inset-bottom));
   opacity: 0;
   transition: opacity 0.8s ease;
 }
 body.ready .card { opacity: 1; }
 
-.head {
-  padding: calc(28px + env(safe-area-inset-top)) 24px 10px;
+/* ── 첫 화면: 섬 그림 하나 ─────────────────────────────────────────── */
+
+.hero {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: calc(20px + env(safe-area-inset-top)) var(--gutter) 28px;
   text-align: center;
-  background: var(--sky);
-}
-body.sunset .head { background: #f2ccb3; }
-/* 파란 하늘 위에서는 흰 글씨 (노을 하늘은 밝아서 그대로 짙은 글씨) */
-body:not(.sunset) .head { color: #fff; text-shadow: 0 1px 3px rgba(10, 40, 70, 0.35); }
-body:not(.sunset) .head .brand,
-body:not(.sunset) .head .date { color: rgba(255, 255, 255, 0.88); }
-
-.brand {
-  margin: 0 0 6px;
-  font-size: 13px;
-  letter-spacing: 0.3em;
-  color: var(--ink-soft);
 }
 
-h1 {
-  margin: 0;
-  font-family: var(--serif);
-  font-weight: 600;
-  font-size: 28px;
-  letter-spacing: 0.02em;
+.wordmark {
+  margin-bottom: 18px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  color: var(--ink-2);
 }
 
-.date {
-  margin: 8px 0 0;
-  font-size: 14px;
-  color: var(--ink-soft);
-}
-
-.view {
+.stage {
   position: relative;
-  background: var(--sky);
+  height: clamp(320px, calc(100svh - 300px), 600px);
+  aspect-ratio: 1170 / 2532;  /* 배경화면 그림과 같은 비율 (js/wallpaper.js) */
+  max-width: 100%;
+  border-radius: 22px;
+  overflow: hidden;
+  background: var(--paper-deep);
+  box-shadow: 0 1px 2px rgba(31, 42, 43, 0.08), 0 22px 44px -18px rgba(31, 42, 43, 0.45);
 }
-body.sunset .view { background: #f2ccb3; }
-
-#island {
-  display: block;
-  width: 100%;
-  height: min(54vh, 470px);
-  touch-action: none;
-  cursor: grab;
-}
-
-.hint {
+.stage img, .stage canvas {
   position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 10px;
-  margin: 0;
-  text-align: center;
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.85);
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
-  pointer-events: none;
-}
-
-section { padding: 0 24px; }
-section.view { padding: 0; }
-
-.label {
-  margin: 0 0 8px;
-  font-size: 12px;
-  letter-spacing: 0.2em;
-  color: var(--ink-soft);
-}
-
-.answer {
-  padding-top: 30px;
-  padding-bottom: 8px;
-  text-align: center;
-}
-
-.answer-line {
-  margin: 0;
-  font-family: var(--serif);
-  font-size: 20px;
-  line-height: 1.7;
-  word-break: keep-all;
-}
-
-.stamp-wrap {
-  padding-top: 20px;
-  text-align: center;
-}
-
-.stamp {
-  width: 180px;
-  height: 180px;
-  margin: 0 auto;
-  transform: rotate(-6deg);
-}
-.stamp svg { width: 100%; height: 100%; display: block; }
-
-.stamp-note {
-  margin: 6px 0 0;
-  font-size: 12px;
-  color: var(--ink-soft);
-}
-
-/* 내 섬 찾기 (2026-10-07): 그날 몇 번째 섬, 작품 화면 수평선의 자리 */
-.today {
-  margin: 30px 24px 0;
-  padding: 0;
-  text-align: center;
-}
-.today[hidden] { display: none; }
-.today-order {
-  margin: 0 0 12px;
-  font-family: var(--serif);
-  font-size: 17px;
-  font-weight: 600;
-  word-break: keep-all;
-}
-.today-map svg {
+  inset: 0;
   display: block;
   width: 100%;
-  height: auto;
-  border-radius: 12px;
+  height: 100%;
 }
-.today-note {
-  margin: 10px 0 0;
+.stage img[hidden], .stage canvas[hidden] { display: none; }
+#picture {
+  -webkit-touch-callout: default;  /* 길게 눌러 "사진 앱에 저장" */
+  -webkit-user-select: auto;
+  user-select: auto;
+}
+#island { touch-action: none; cursor: grab; }
+
+.picture-wait {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
   font-size: 13px;
-  line-height: 1.6;
-  color: var(--ink-soft);
-  word-break: keep-all;
+  color: var(--ink-2);
 }
+.picture-wait[hidden] { display: none; }
 
-.place {
-  margin: 28px 24px 0;
-  padding: 18px 20px;
-  border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
-}
-
-.place-name {
-  margin: 0;
-  font-family: var(--serif);
-  font-size: 19px;
-  font-weight: 600;
-}
-
-.place-where {
-  margin: 2px 0 8px;
-  font-size: 13px;
-  color: var(--ink-soft);
-}
-
-.place-line {
-  margin: 0;
-  font-size: 15px;
-  line-height: 1.6;
-  word-break: keep-all;
-}
-
-.actions {
-  padding-top: 26px;
-  text-align: center;
-}
-
-button {
-  font: inherit;
-  font-size: 16px;
-  padding: 13px 22px;
-  min-height: 48px;
-  border: 1px solid var(--ink);
+.chip {  /* 그림의 하늘 쪽 (아래쪽은 QR) */
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 12px 0 10px;
+  border: 0;
   border-radius: 999px;
-  background: var(--ink);
-  color: #fff;
+  background: rgba(255, 255, 255, 0.78);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  color: var(--ink);
+  font: 500 12px/1 var(--sans);
   cursor: pointer;
 }
-button:disabled { opacity: 0.5; }
-button.quiet {
-  background: transparent;
-  color: var(--ink);
-  border-color: var(--line);
+.chip[hidden] { display: none; }
+.chip svg { width: 14px; height: 14px; }
+
+h1 {
+  margin: 24px 0 0;
+  font-family: var(--serif);
+  font-weight: 700;
+  font-size: 30px;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  word-break: keep-all;
+  text-wrap: balance;
 }
 
-.status {
-  min-height: 1.4em;
-  margin: 8px 0 0;
+.meta {
+  margin-top: 6px;
   font-size: 13px;
-  color: var(--ink-soft);
+  color: var(--ink-2);
 }
 
 .revisits {
-  margin: 6px 0 0;
-  font-size: 13px;
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 500;
   color: var(--seal);
-  letter-spacing: 0.05em;
+}
+.revisits[hidden] { display: none; }
+
+button {
+  font: inherit;
+  cursor: pointer;
 }
 
-.return {
-  margin: 34px 24px 0;
-  padding: 22px 20px;
+.primary {
+  margin-top: 22px;
+  width: min(100%, 300px);
+  min-height: 52px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+.primary:disabled { opacity: 0.35; }
+
+.save-how {
+  margin-top: 10px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--ink-2);
+  word-break: keep-all;
+}
+.save-how.nudge { color: var(--ink); font-weight: 500; }
+
+.status {
+  min-height: 1.5em;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+/* ── 바다의 대답 ─────────────────────────────────────────────────── */
+
+.answer {
+  padding: 64px var(--gutter) 8px;
+}
+
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--ink-2);
+}
+.eyebrow::before {
+  content: "";
+  width: 22px;
+  height: 1px;
+  background: currentColor;
+}
+
+.quote {
+  margin-top: 20px;
+  font-family: var(--serif);
+  font-size: 23px;
+  line-height: 1.75;
+  letter-spacing: -0.01em;
+  word-break: keep-all;
+  text-wrap: balance;  /* 마지막 줄에 한 낱말만 남지 않게 */
+}
+
+.seal {
+  margin: 22px 0 0 auto;
+  width: 132px;
   text-align: center;
-  background: #f6f3ec;
-  border-radius: 16px;
+}
+.stamp {
+  width: 132px;
+  height: 132px;
+  transform: rotate(-8deg);
+  mix-blend-mode: multiply;
+}
+.stamp svg { display: block; width: 100%; height: 100%; }
+.seal figcaption {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--ink-2);
 }
 
+/* ── 번호 붙은 네 칸 ─────────────────────────────────────────────── */
+
+.ledger {
+  list-style: none;
+  margin: 40px 0 0;
+  padding: 0 var(--gutter);
+  counter-reset: entry;
+}
+
+.entry {
+  counter-increment: entry;  /* 숨긴 칸(그날의 군도가 없을 때)은 세지 않는다 */
+  padding: 24px 0 30px;
+  border-top: 1px solid var(--rule);
+}
+.entry[hidden] { display: none; }
+
+.entry-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink);
+}
+.entry-head::before {
+  content: counter(entry, decimal-leading-zero);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--seal);
+}
+
+.entry-title {
+  font-family: var(--serif);
+  font-weight: 700;
+  font-size: 20px;
+  line-height: 1.45;
+  word-break: keep-all;
+}
+.entry-sub {
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.entry-body {
+  margin-top: 10px;
+  word-break: keep-all;
+}
+.entry-head + .entry-body { margin-top: 0; }
+.entry-note {
+  margin-top: 12px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--ink-2);
+  word-break: keep-all;
+}
+
+.today-map { margin-top: 16px; }
+.today-map svg { display: block; width: 100%; height: auto; }
+
+.qr-tile {
+  width: min(64vw, 248px);
+  margin: 20px auto 0;
+  padding: 12px;
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 0 0 1px var(--rule);
+}
 #return-qr {
   display: block;
-  width: min(72vw, 300px);
+  width: 100%;
   height: auto;
-  margin: 6px auto 14px;
   image-rendering: pixelated;
 }
 
-.return-note {
-  margin: 0;
-  font-size: 15px;
-  line-height: 1.7;
-  word-break: keep-all;
+/* 나만의 소원: 접어 둔다. 적어 둔 글이 있으면 펼쳐서 연다 (js/card.js) */
+.memo summary {
+  list-style: none;
+  cursor: pointer;
+  margin-bottom: 0;
 }
-
-.return-tip {
-  margin: 10px 0 0;
-  font-size: 12px;
-  color: var(--ink-soft);
-  word-break: keep-all;
+.memo summary::-webkit-details-marker { display: none; }
+.memo summary::after {
+  content: "";
+  width: 7px;
+  height: 7px;
+  margin-left: auto;
+  border-right: 1.5px solid var(--ink-2);
+  border-bottom: 1.5px solid var(--ink-2);
+  transform: translateY(-3px) rotate(45deg);
+  transition: transform 0.2s ease;
 }
-
-.memo { padding-top: 30px; }
-
-.memo-note {
-  margin: 0 0 12px;
-  font-size: 14px;
-  line-height: 1.6;
-  color: var(--ink-soft);
-  word-break: keep-all;
-}
+.memo[open] summary::after { transform: translateY(1px) rotate(-135deg); }
+.memo[open] summary { margin-bottom: 4px; }
 
 textarea {
   display: block;
   width: 100%;
-  padding: 12px 14px;
+  margin-top: 14px;
+  padding: 14px 16px;
   font: inherit;
-  font-size: 16px;
+  font-size: 16px;  /* 16px 아래면 아이폰이 확대한다 */
   line-height: 1.6;
   color: var(--ink);
-  background: #f6f3ec;
-  border: 1px solid var(--line);
-  border-radius: 12px;
+  background: #fbf9f4;
+  border: 1px solid var(--rule);
+  border-radius: 14px;
   resize: vertical;
 }
+textarea:focus { outline: 2px solid rgba(31, 42, 43, 0.25); outline-offset: 1px; }
 
 .memo-buttons {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   margin-top: 10px;
 }
-.memo-buttons button { flex: 1; }
+.small {
+  min-height: 44px;
+  padding: 0 20px;
+  border: 1px solid var(--ink);
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 14px;
+  font-weight: 500;
+}
+.small.quiet {
+  background: transparent;
+  color: var(--ink-2);
+  border-color: var(--rule);
+}
+
+/* ── 맺음 ───────────────────────────────────────────────────────── */
 
 .foot {
-  margin-top: 40px;
-  padding: 0 24px;
+  margin: 0 var(--gutter);
+  padding-top: 44px;
+  border-top: 1px solid var(--rule);
   text-align: center;
 }
-
-.footer-line {
-  margin: 0 0 14px;
+.closing {
+  margin-bottom: 18px;
   font-family: var(--serif);
-  font-size: 16px;
+  font-size: 17px;
+  line-height: 1.7;
   word-break: keep-all;
+  white-space: pre-line;  /* 쉼표 뒤에서 줄을 바꾼다 (js/card.js) */
 }
-
-.where, .privacy {
-  margin: 4px 0;
+.fine {
+  margin-top: 4px;
   font-size: 12px;
   line-height: 1.6;
-  color: var(--ink-soft);
+  color: var(--ink-2);
   word-break: keep-all;
 }
+
+/* ── 섬을 찾지 못했을 때 ─────────────────────────────────────────── */
 
 .missing-msg {
   display: none;
   max-width: 420px;
   margin: 0 auto;
-  padding: 30vh 24px 0;
+  padding: 32vh var(--gutter) 0;
   text-align: center;
 }
-.missing-msg p { color: var(--ink-soft); line-height: 1.6; }
+.missing-msg p:not(.wordmark) { margin-top: 12px; color: var(--ink-2); }
 body.missing .card { display: none; }
 body.missing .missing-msg { display: block; }
 
-/* 첫 화면: 섬 그림과 저장 버튼 (2026-10-07 작가 1안). 그림은 휴대폰 세로 화면 비율(1170x2532)이라 화면 높이에 맞춘다 */
-.picture {
-  padding-top: 18px;
-  text-align: center;
+:focus-visible { outline: 2px solid var(--seal); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .card { transition: none; }
 }
-.picture-frame {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: min(calc(100svh - 250px), 640px);
-}
-#picture {
-  display: block;
-  width: auto;
-  max-width: 78%;
-  max-height: min(calc(100svh - 250px), 640px);
-  border-radius: 18px;
-  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.22);
-  -webkit-touch-callout: default;  /* 길게 눌러 "사진 앱에 저장" */
-  -webkit-user-select: auto;
-  user-select: auto;
-}
-#picture[hidden] { display: none; }
-.picture-wait {
-  margin: 0;
-  font-size: 14px;
-  color: var(--ink-soft);
-}
-.picture-wait[hidden] { display: none; }
-#save-picture {
-  margin-top: 18px;
-  min-width: 220px;
-}
-.save-how {
-  margin: 10px 0 0;
-  font-size: 13px;
-  line-height: 1.6;
-  color: var(--ink-soft);
-  word-break: keep-all;
-}
-.save-how.nudge { color: var(--ink); font-weight: 600; }
-.picture + .view { margin-top: 26px; }
