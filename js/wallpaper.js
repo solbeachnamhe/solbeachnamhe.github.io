@@ -1,23 +1,18 @@
-// 배경화면 그림 (2026-10-12 섬의 증서): 위는 하늘과 섬, 아래는 증서.
-// - 잠금 화면의 시계(위 약 22%)는 하늘 위에, 섬은 그 아래에. 아래 모서리의 손전등·카메라 버튼과 홈 막대는 비워 둔다.
-// - 증서: 왼쪽 정렬 글(이름, 날짜, 바다의 대답) + 오른쪽 위 해안선 도장, 점선 아래 다시 방문용 QR (가운데).
+// 배경화면 그림 (2026-10-12 섬의 증서, 같은 날 다시 검토해 고침): 하늘과 바다 위에 증서 한 장이 떠 있다.
+// - 잠금 화면의 시계(위 약 22%)는 하늘 위에, 섬은 그 아래(약 35%). 아래 모서리의 손전등·카메라 버튼과 홈 막대는 비워 둔다.
+// - 증서: 위 모서리가 둥근 종이가 바다 위로 올라와 있다 (전에는 바다가 회색 띠로 번지며 종이가 되어 얼룩져 보였다).
+//   왼쪽 정렬 글(이름, 날짜, 바다의 대답) + 오른쪽 위 해안선 도장, 점선 아래 다시 방문용 QR (가운데).
 // - QR은 웹캠이 한 뼘 거리에서 읽는 크기(420px)와 흰 바탕의 검은 무늬를 그대로 지킨다.
 
 import { qrCanvas } from "./qr.js";
+import { stampCanvas } from "./stamp.js?v=20261012h";
 
 export const W = 1170, H = 2532;  // 요즘 휴대폰 세로 화면
 const PAPER = "#f4f0e8", INK = "#1f2a2b", INK2 = "#5f6a6a";
 const SERIF = "'Mongdol Serif', 'AppleMyungjo', 'Noto Serif KR', serif";
 const SANS = "'Mongdol Sans', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif";
-const PAD = 110;
+const SIDE = 44, INSET = 76;  // 바다가 보이는 양옆 폭, 종이 안 여백
 const QR = 420, TILE_PAD = 24, TILE = QR + TILE_PAD * 2;
-
-async function svgImage(svg) {
-  const img = new Image();
-  img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
-  await img.decode();
-  return img;
-}
 
 function wrapText(ctx, text, maxWidth) {
   const lines = [];
@@ -54,11 +49,21 @@ function roundRect(ctx, x, y, w, h, r) {
 
 async function fontsReady() {
   // 그림에 그리기 전에 글꼴을 읽어 둔다 (못 읽으면 휴대폰 글꼴로)
-  await Promise.all([`700 72px ${SERIF}`, `400 40px ${SERIF}`, `500 28px ${SANS}`, `400 30px ${SANS}`]
+  await Promise.all([`700 76px ${SERIF}`, `400 44px ${SERIF}`, `500 30px ${SANS}`, `400 34px ${SANS}`]
     .map((f) => document.fonts.load(f).catch(() => null)));
 }
 
-/** info: name, answer, stamp(SVG), qr(주소), date(긴 날짜), order(그날 몇 번째, 0부터 또는 null) */
+/** 그림 아래 몇 줄의 평균 색 (바다를 아래로 이어 칠한다) */
+function bottomColor(canvas) {
+  const rows = 6;
+  const data = canvas.getContext("2d").getImageData(0, canvas.height - rows, canvas.width, rows).data;
+  const sum = [0, 0, 0];
+  for (let i = 0; i < data.length; i += 4) { sum[0] += data[i]; sum[1] += data[i + 1]; sum[2] += data[i + 2]; }
+  const n = data.length / 4;
+  return sum.map((v) => Math.round(v / n));
+}
+
+/** info: name, answer, hm(높이 지도), stampDate(짧은 날짜), qr(주소), date(긴 날짜), order(그날 몇 번째, 0부터 또는 null) */
 export async function makeWallpaper(view, info) {
   await fontsReady();
   const out = document.createElement("canvas");
@@ -67,80 +72,93 @@ export async function makeWallpaper(view, info) {
   const ctx = out.getContext("2d");
   const rgb = view.skyColor.map((v) => Math.round(v * 255)).join(",");
 
-  // 하늘과 섬: 섬은 시계 아래 (그림 높이의 약 34%)
-  const sceneTop = Math.round(H * 0.12), sceneH = Math.round(H * 0.44), sceneBottom = sceneTop + sceneH;
+  // 하늘과 섬 (섬은 그림 높이의 약 35%), 그 아래로 바다를 이어 칠한다
+  const sceneTop = Math.round(H * 0.12), sceneH = Math.round(H * 0.46), sceneBottom = sceneTop + sceneH;
   ctx.fillStyle = `rgb(${rgb})`;
   ctx.fillRect(0, 0, W, sceneTop + 2);
-  ctx.drawImage(view.snapshot(W, sceneH, { fill: 0.74 }), 0, sceneTop);
+  const scene = view.snapshot(W, sceneH, { fill: 0.8 });
+  ctx.drawImage(scene, 0, sceneTop);
   const fadeTop = ctx.createLinearGradient(0, sceneTop, 0, sceneTop + H * 0.06);  // 하늘끼리 이어지게
   fadeTop.addColorStop(0, `rgba(${rgb},1)`);
   fadeTop.addColorStop(1, `rgba(${rgb},0)`);
   ctx.fillStyle = fadeTop;
   ctx.fillRect(0, sceneTop, W, H * 0.06);
+  const sea = bottomColor(scene);
+  const deep = ctx.createLinearGradient(0, sceneBottom, 0, H);
+  deep.addColorStop(0, `rgb(${sea})`);
+  deep.addColorStop(1, `rgb(${sea.map((v) => Math.round(v * 0.82))})`);
+  ctx.fillStyle = deep;
+  ctx.fillRect(0, sceneBottom - 1, W, H - sceneBottom + 1);
 
-  // 종이
-  const fadeH = Math.round(H * 0.06);
+  // 증서: 위 모서리가 둥근 종이가 바다 위로 올라온다
+  const sheetTop = sceneBottom - 120, sheetX = SIDE, sheetW = W - SIDE * 2;
+  ctx.save();
+  ctx.shadowColor = "rgba(16,22,28,0.28)";
+  ctx.shadowBlur = 48;
+  ctx.shadowOffsetY = -4;
   ctx.fillStyle = PAPER;
-  ctx.fillRect(0, sceneBottom, W, H - sceneBottom);
-  const fade = ctx.createLinearGradient(0, sceneBottom - fadeH, 0, sceneBottom);
-  fade.addColorStop(0, "rgba(244,240,232,0)");
-  fade.addColorStop(1, "rgba(244,240,232,1)");
-  ctx.fillStyle = fade;
-  ctx.fillRect(0, sceneBottom - fadeH, W, fadeH + 1);
+  roundRect(ctx, sheetX, sheetTop, sheetW, H - sheetTop + 80, 52);
+  ctx.fill();
+  ctx.restore();
 
   // 해안선 도장: 이름 오른쪽 위, 인주처럼 종이에 스민다
-  const stamp = await svgImage(info.stamp);
-  const seal = 230, sealX = W - PAD - seal / 2 + 10, sealY = sceneBottom + 120;
+  const seal = 250, sealX = sheetX + sheetW - INSET - seal / 2 + 6, sealY = sheetTop + INSET + 118;
   ctx.save();
   ctx.globalCompositeOperation = "multiply";
-  ctx.globalAlpha = 0.92;
   ctx.translate(sealX, sealY);
   ctx.rotate(-0.13);
-  ctx.drawImage(stamp, -seal / 2, -seal / 2, seal, seal);
+  ctx.drawImage(stampCanvas(info.hm, info.stampDate, seal * 2), -seal / 2, -seal / 2, seal, seal);
   ctx.restore();
 
   // 글: 왼쪽 정렬
+  const left = sheetX + INSET, textW = sheetW - INSET * 2;
   ctx.textAlign = "left";
   ctx.textBaseline = "top";
-  let y = sceneBottom + 44;
+  let y = sheetTop + INSET;
   ctx.fillStyle = INK2;
-  ctx.font = `500 28px ${SANS}`;
-  ctx.fillText("몽돌의 소원 · 남해", PAD, y);
+  ctx.font = `500 30px ${SANS}`;
+  ctx.fillText("몽돌의 소원 · 남해", left, y);
   y += 62;
   ctx.fillStyle = INK;
-  ctx.font = `700 72px ${SERIF}`;
-  ctx.fillText(info.name, PAD, y, W - PAD * 2 - seal);
-  y += 108;
-  ctx.fillStyle = INK2;
-  ctx.font = `400 30px ${SANS}`;
-  const meta = info.order === null || info.order === undefined ? info.date : `${info.date} · ${info.order + 1}번째로 솟은 섬`;
-  ctx.fillText(meta, PAD, y);
-  y += 84;
-  ctx.fillStyle = INK;
-  let size = 40;
-  ctx.font = `400 ${size}px ${SERIF}`;
-  let lines = balancedWrap(ctx, info.answer, W - PAD * 2);
-  if (lines.length > 2) {  // 세 줄이 되면 조금 작게
-    size = 36;
-    ctx.font = `400 ${size}px ${SERIF}`;
-    lines = balancedWrap(ctx, info.answer, W - PAD * 2);
+  let nameSize = 76;
+  ctx.font = `700 ${nameSize}px ${SERIF}`;
+  while (ctx.measureText(info.name).width > textW - seal - 10 && nameSize > 60) {  // 긴 이름은 도장에 닿지 않게
+    nameSize -= 2;
+    ctx.font = `700 ${nameSize}px ${SERIF}`;
   }
-  lines.forEach((l, i) => ctx.fillText(l, PAD, y + i * size * 1.6));
+  ctx.fillText(info.name, left, y);
+  y += 116;
+  ctx.fillStyle = INK2;
+  ctx.font = `400 34px ${SANS}`;
+  const meta = info.order === null || info.order === undefined ? info.date : `${info.date} · ${info.order + 1}번째로 솟은 섬`;
+  ctx.fillText(meta, left, y);
+  y += 92;
 
-  // 다시 방문용 QR: 아래 가운데. 아래 모서리 버튼과 홈 막대를 피한다
-  const tileY = H - 92 - TILE, tileX = (W - TILE) / 2;
-  const captionY = tileY - 58;
-  ctx.strokeStyle = "rgba(31,42,43,0.28)";
+  // 다시 방문용 QR 자리 (아래에서부터 잡는다)
+  const tileY = H - 96 - TILE, tileX = (W - TILE) / 2;
+  const captionY = tileY - 62, perfY = captionY - 38;
+
+  ctx.fillStyle = INK;
+  let size = 44, lines;
+  for (;;) {  // 대답이 점선에 닿으면 조금씩 작게
+    ctx.font = `400 ${size}px ${SERIF}`;
+    lines = balancedWrap(ctx, info.answer, textW);
+    if (y + lines.length * size * 1.62 < perfY - 36 || size <= 34) break;
+    size -= 2;
+  }
+  lines.forEach((l, i) => ctx.fillText(l, left, y + i * size * 1.62));
+
+  ctx.strokeStyle = "rgba(31,42,43,0.26)";
   ctx.lineWidth = 3;
   ctx.setLineDash([12, 12]);
   ctx.beginPath();
-  ctx.moveTo(PAD, captionY - 34);
-  ctx.lineTo(W - PAD, captionY - 34);
+  ctx.moveTo(left, perfY);
+  ctx.lineTo(left + textW, perfY);
   ctx.stroke();
   ctx.setLineDash([]);
   ctx.textAlign = "center";
   ctx.fillStyle = INK2;
-  ctx.font = `400 28px ${SANS}`;
+  ctx.font = `400 32px ${SANS}`;
   ctx.fillText("다시 찾아올 때, 화면 위 카메라에 한 뼘 거리로 비춰 주세요", W / 2, captionY);
   if (info.qr) {
     ctx.fillStyle = "#fff";

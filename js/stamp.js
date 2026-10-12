@@ -2,7 +2,8 @@
 
 import { N, SEA_LEVEL } from "./generator.js";
 
-const INK = "#b3372b";
+const INK = "#b23a2c";  // 인주 (css/card.css --seal)
+const SERIF = "'Mongdol Serif', 'AppleMyungjo', 'Noto Serif KR', serif";
 
 /** 마칭 스퀘어로 해수면 선을 따고, 가장 긴 고리 하나를 돌려준다. 점은 높이 지도 픽셀 좌표. */
 export function coastline(hm, step = 2) {
@@ -71,37 +72,98 @@ function smoothLoop(pts, passes = 2) {
   return p;
 }
 
-/** 도장 SVG 문자열. dateText 예: "2026. 10. 3." */
-export function stampSVG(hm, dateText) {
+/** 도장의 섬 모양: 200×200 상자 안 점들 (섬이 안쪽 원 반지름 약 56에 들어가게). 땅이 없으면 null */
+function islandShape(hm) {
   const loop = coastline(hm);
-  let path = "";
-  if (loop.length > 8) {
-    const pts = smoothLoop(loop);
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    for (const [x, y] of pts) { minX = Math.min(minX, x); maxX = Math.max(maxX, x); minY = Math.min(minY, y); maxY = Math.max(maxY, y); }
-    const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
-    const s = 92 / Math.hypot(maxX - minX, maxY - minY);  // 섬이 안쪽 원(반지름 약 56)에 들어가게
-    path = "M" + pts.map(([x, y]) => `${(100 + (x - cx) * s).toFixed(1)} ${(100 + (y - cy) * s).toFixed(1)}`).join("L") + "Z";
+  if (loop.length <= 8) return null;
+  const pts = smoothLoop(loop);
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const [x, y] of pts) { minX = Math.min(minX, x); maxX = Math.max(maxX, x); minY = Math.min(minY, y); maxY = Math.max(maxY, y); }
+  const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+  const s = 92 / Math.hypot(maxX - minX, maxY - minY);
+  return pts.map(([x, y]) => [100 + (x - cx) * s, 100 + (y - cy) * s]);
+}
+
+function rng(text) {  // 도장마다 같은 잉크 결 (같은 소원증은 늘 같은 도장)
+  let a = 2166136261;
+  for (const ch of text) a = Math.imul(a ^ ch.codePointAt(0), 16777619);
+  return () => {
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/** 원을 따라 글자를 놓는다. top이면 위쪽 호를 왼쪽에서 오른쪽으로, 아니면 아래쪽 호를 바로 선 글자로 */
+function arcText(ctx, text, r, top, spacing) {
+  const chars = [...text];
+  const widths = chars.map((ch) => ctx.measureText(ch).width);
+  const total = widths.reduce((s, w) => s + w, 0) + spacing * (chars.length - 1);
+  let acc = 0;
+  chars.forEach((ch, i) => {
+    const at = (acc + widths[i] / 2) / r, half = total / 2 / r;
+    const a = top ? -Math.PI / 2 - half + at : Math.PI / 2 + half - at;
+    ctx.save();
+    ctx.translate(100 + r * Math.cos(a), 100 + r * Math.sin(a));
+    ctx.rotate(top ? a + Math.PI / 2 : a - Math.PI / 2);
+    ctx.fillText(ch, 0, 0);
+    ctx.restore();
+    acc += widths[i] + spacing;
+  });
+}
+
+/** 해안선 도장을 px×px 그림으로 (2026-10-12: SVG 대신 캔버스. 글꼴이 소원증 명조로 또렷하게 찍힌다).
+ *  글꼴을 먼저 읽어 둔 뒤 부른다. dateText 예: "2026. 10. 3." */
+export function stampCanvas(hm, dateText, px) {
+  const out = document.createElement("canvas");
+  out.width = px;
+  out.height = px;
+  const ctx = out.getContext("2d");
+  ctx.scale(px / 200, px / 200);
+  ctx.strokeStyle = INK;
+  ctx.fillStyle = INK;
+  for (const [r, w] of [[92, 4.2], [84, 1.4], [62, 1.1]]) {
+    ctx.lineWidth = w;
+    ctx.beginPath();
+    ctx.arc(100, 100, r, 0, Math.PI * 2);
+    ctx.stroke();
   }
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="내 섬의 해안선 도장">
-  <defs>
-    <filter id="ink" x="-5%" y="-5%" width="110%" height="110%">
-      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="3" result="n"/>
-      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -1.6 1.25" result="holes"/>
-      <feComposite in="SourceGraphic" in2="holes" operator="in"/>
-    </filter>
-    <path id="ringTop" d="M 30 100 A 70 70 0 0 1 170 100"/>
-    <path id="ringBottom" d="M 33 100 A 67 67 0 0 0 167 100"/>
-  </defs>
-  <g filter="url(#ink)" fill="none" stroke="${INK}">
-    <circle cx="100" cy="100" r="92" stroke-width="4"/>
-    <circle cx="100" cy="100" r="84" stroke-width="1.5"/>
-    <circle cx="100" cy="100" r="62" stroke-width="1"/>
-    <path d="${path}" fill="${INK}" fill-opacity="0.9" stroke-width="1.2" stroke-linejoin="round"/>
-    <g fill="${INK}" stroke="none" font-family="'Mongdol Serif','Noto Serif KR','AppleMyungjo','Batang',serif" font-weight="700">
-      <text font-size="15" letter-spacing="3" text-anchor="middle"><textPath href="#ringTop" startOffset="50%">南海 · 몽돌의 소원</textPath></text>
-      <text font-size="12" letter-spacing="2" text-anchor="middle" dominant-baseline="hanging"><textPath href="#ringBottom" startOffset="50%">${dateText}</textPath></text>
-    </g>
-  </g>
-</svg>`;
+  const shape = islandShape(hm);
+  if (shape) {
+    ctx.beginPath();
+    shape.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+    ctx.closePath();
+    ctx.lineJoin = "round";
+    ctx.lineWidth = 1.2;
+    ctx.fill();
+    ctx.stroke();
+  }
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.font = `700 14.5px ${SERIF}`;
+  arcText(ctx, "남해 · 몽돌의 소원", 73, true, 2.2);
+  ctx.font = `700 12px ${SERIF}`;
+  arcText(ctx, dateText, 73, false, 1.6);
+
+  // 인주 결: 군데군데 덜 묻은 자리 (같은 도장은 늘 같은 결)
+  const rand = rng(dateText + shape?.length);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalCompositeOperation = "destination-out";
+  const unit = px / 200;
+  for (let k = 0; k < 900; k++) {
+    ctx.globalAlpha = 0.25 + rand() * 0.6;
+    ctx.beginPath();
+    ctx.arc(rand() * px, rand() * px, (0.25 + rand() * 0.9) * unit, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  for (let k = 0; k < 14; k++) {  // 넓게 옅어진 자리
+    ctx.globalAlpha = 0.12 + rand() * 0.16;
+    ctx.beginPath();
+    ctx.arc(rand() * px, rand() * px, (14 + rand() * 30) * unit, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = "source-over";
+  return out;
 }

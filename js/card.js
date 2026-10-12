@@ -6,12 +6,12 @@ import { ANSWERS, CARD_FOOTER, ISLAND_NAMES, PLACES } from "./content.js";
 import { place } from "./elements.js";
 import { generate } from "./generator.js";
 // ?v=: 2026-10-12 바뀐 파일. 휴대폰이 예전 것을 기억하지 않게 (index.html의 card.js?v=와 같이 올린다)
-import { createIslandView } from "./island3d.js?v=20261012c";
+import { createIslandView } from "./island3d.js?v=20261012h";
 import { fromString, seedDate, tone } from "./seed.js";
-import { stampSVG } from "./stamp.js?v=20261012c";
+import { stampCanvas } from "./stamp.js?v=20261012h";
 import { cardUrl, qrCanvas } from "./qr.js";
-import { makeWallpaper } from "./wallpaper.js?v=20261012c";
-import { archipelagoMapSVG } from "./archipelago.js?v=20261012c";
+import { makeWallpaper } from "./wallpaper.js?v=20261012h";
+import { archipelagoMapSVG } from "./archipelago.js?v=20261012h";
 
 const $ = (id) => document.getElementById(id);
 
@@ -90,7 +90,8 @@ async function preparePicture(view, info) {
   const file = new File([blob], "mongdol-island.png", { type: "image/png" });
   const img = $("picture");
   img.src = URL.createObjectURL(blob);
-  await img.decode().catch(() => {});
+  // decode()는 화면이 그려지지 않는 동안(창이 가려졌을 때 등) 끝나지 않을 수 있다: 1.5초만 기다린다 (2026-10-12 공개 주소에서 한 번 멈춤)
+  await Promise.race([img.decode().catch(() => {}), new Promise((r) => setTimeout(r, 1500))]);
   img.hidden = false;
   $("picture-wait").hidden = true;
   return file;
@@ -154,7 +155,7 @@ function main() {
   const date = formatDate(seedDate(seed));
   const cat = seed.category;
   const url = cardUrl(full);  // 다시 방문용 QR에도 번호를 둔다 (웹캠은 번호를 버리고 섬만 읽는다)
-  const info = { name: ISLAND_NAMES[cat], answer: ANSWERS[cat], stamp: stampSVG(hm, date.short), qr: url,
+  const info = { name: ISLAND_NAMES[cat], answer: ANSWERS[cat], hm, stampDate: date.short, qr: url,
     date: date.long, order };
 
   $("island-name").textContent = info.name;
@@ -165,7 +166,11 @@ function main() {
   }
   qrCanvas(url, 600, $("return-qr"));
   $("answer").textContent = info.answer;
-  $("stamp").innerHTML = info.stamp;
+  // 도장은 소원증 명조로 찍는다: 글꼴을 읽은 뒤 화면 화소에 맞춰 그린다
+  document.fonts.load("700 15px 'Mongdol Serif'").catch(() => null).then(() => {
+    const px = Math.round(132 * Math.min(window.devicePixelRatio || 1, 3));
+    $("stamp").replaceChildren(stampCanvas(hm, date.short, px));
+  });
   showToday(order, seedDate(seed), date.long);
   const p = PLACES[cat];
   $("place-name").textContent = p.name;

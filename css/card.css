@@ -1,6 +1,6 @@
 /* 소원증 "섬의 증서" (2026-10-12). 종이 한 장, 먹 한 가지, 인주 한 가지. 하늘과 바다의 색은 섬 그림 안에만 둔다.
    글꼴은 이 페이지 안의 것만 (web/fonts, tools/make_web_fonts.py): 명조 = 고운바탕, 고딕 = Pretendard에서 쓰는 글자만 남긴 것.
-   글자 크기는 여섯 가지: 12 · 13 · 15 · 20 · 23 · 30 */
+   글자 크기: 12(맨 아래 작은 글) · 13 · 14 · 15 · 17(칸 제목) · 20 · 23 · 30 */
 
 @font-face { font-family: "Mongdol Serif"; font-weight: 400; font-display: swap; src: url("../fonts/mongdol-serif-400.woff") format("woff"); }
 @font-face { font-family: "Mongdol Serif"; font-weight: 700; font-display: swap; src: url("../fonts/mongdol-serif-700.woff") format("woff"); }
@@ -60,9 +60,9 @@ body.ready .card { opacity: 1; }
 
 .wordmark {
   margin-bottom: 18px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.04em;
   color: var(--ink-2);
 }
 
@@ -108,15 +108,15 @@ body.ready .card { opacity: 1; }
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 34px;
-  padding: 0 12px 0 10px;
+  min-height: 40px;
+  padding: 0 14px 0 12px;
   border: 0;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.78);
   -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
   color: var(--ink);
-  font: 500 12px/1 var(--sans);
+  font: 500 13px/1 var(--sans);
   cursor: pointer;
 }
 .chip[hidden] { display: none; }
@@ -135,7 +135,7 @@ h1 {
 
 .meta {
   margin-top: 6px;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--ink-2);
 }
 
@@ -192,7 +192,7 @@ button {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 500;
   letter-spacing: 0.04em;
   color: var(--ink-2);
@@ -225,10 +225,10 @@ button {
   transform: rotate(-8deg);
   mix-blend-mode: multiply;
 }
-.stamp svg { display: block; width: 100%; height: 100%; }
+.stamp canvas { display: block; width: 100%; height: 100%; }
 .seal figcaption {
   margin-top: 4px;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--ink-2);
 }
 
@@ -252,14 +252,14 @@ button {
   display: flex;
   align-items: baseline;
   gap: 12px;
-  margin-bottom: 14px;
-  font-size: 13px;
+  margin-bottom: 16px;
+  font-size: 17px;  /* 2026-10-12 작가 아이폰: 13px은 너무 작다 */
   font-weight: 500;
   color: var(--ink);
 }
 .entry-head::before {
   content: counter(entry, decimal-leading-zero);
-  font-size: 12px;
+  font-size: 16px;
   font-variant-numeric: tabular-nums;
   color: var(--seal);
 }
@@ -273,7 +273,7 @@ button {
 }
 .entry-sub {
   margin-top: 2px;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--ink-2);
 }
 .entry-body {
@@ -283,10 +283,11 @@ button {
 .entry-head + .entry-body { margin-top: 0; }
 .entry-note {
   margin-top: 12px;
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.6;
   color: var(--ink-2);
   word-break: keep-all;
+  text-wrap: pretty;  /* 마지막 줄에 한 낱말만 남지 않게 */
 }
 
 .today-map { margin-top: 16px; }
@@ -402,6 +403,14 @@ body.missing .card { display: none; }
 body.missing .missing-msg { display: block; }
 
 :focus-visible { outline: 2px solid var(--seal); outline-offset: 2px; }
+
+@media (max-height: 720px) {  /* 아이폰 SE 같은 짧은 화면: 머리말을 빼고 섬 그림을 크게 */
+  .hero { padding-top: calc(12px + env(safe-area-inset-top)); }
+  .hero > .wordmark { display: none; }
+  .stage { height: clamp(300px, calc(100svh - 236px), 600px); }
+  h1 { margin-top: 16px; }
+  .primary { margin-top: 16px; }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .card { transition: none; }

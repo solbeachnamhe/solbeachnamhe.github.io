@@ -4,8 +4,8 @@
 import {
   ACESFilmicToneMapping, BoxGeometry, BufferAttribute, BufferGeometry, CanvasTexture, CircleGeometry, Color, ConeGeometry,
   CylinderGeometry, DirectionalLight, Fog, Group, HemisphereLight, MathUtils, Mesh, MeshLambertMaterial,
-  MeshStandardMaterial, PerspectiveCamera, SRGBColorSpace, Scene, SphereGeometry, TorusGeometry, WebGLRenderer,
-} from "../vendor/three.min.js";
+  MeshStandardMaterial, PerspectiveCamera, RepeatWrapping, SRGBColorSpace, Scene, SphereGeometry, TorusGeometry, WebGLRenderer,
+} from "../vendor/three.min.js?v=20261012h";  // 2026-10-12 RepeatWrapping을 더해 다시 묶음
 import { N, PIXEL_M, SEA_LEVEL, UNITS_PER_M, fnv1a } from "./generator.js";
 
 // 색 (sRGB). 2026-10-05 설치 화면에 맞춤 (작가가 고른 사진 assets/field_photos/04_수평선/한낮/11_KakaoTalk_…_08.jpg):
@@ -17,9 +17,15 @@ const SKY = [0.239, 0.533, 0.757];  // 하늘 위쪽: css/card.css --sky와 같�
 const SKY_MID = [0.318, 0.608, 0.816];
 const SKY_HORIZON = [0.45, 0.67, 0.83];  // 수평선 쪽 옅은 빛. 안개도 이 색으로 먼 바다가 하늘에 섞인다
 const SKY_LIGHT = [0.827, 0.882, 0.925];  // 하늘에서 오는 빛 (섬과 바다를 비춘다): 파란 하늘 그대로면 섬이 푸르게 물든다
-const SUNSET_SKY = [0.95, 0.80, 0.70];
-const SUNSET_HORIZON = [0.98, 0.84, 0.72];
+// 노을: 2026-10-12 설치 화면(build/compare/category_love-godot.png)에서 잰 색에 맞춤. 하늘 위 sRGB 192 177 181(연보라 빛),
+// 수평선 212 191 174, 바다는 하늘을 비춰 따뜻한 회보라. 전에는 살구빛 하늘(0.95 0.80 0.70)에 회녹색 바다라 설치 화면과 달랐다
+const SUNSET_SKY = [0.80, 0.72, 0.74];
+const SUNSET_MID = [0.86, 0.77, 0.74];
+const SUNSET_HORIZON = [0.92, 0.81, 0.72];
+const SUNSET_LIGHT = [0.95, 0.80, 0.70];  // 섬을 비추는 노을빛 (섬 색은 전과 같게)
 const SEA = [0.24, 0.355, 0.43];  // 짙은 파랑. 조명을 받아 설치 화면 가운데 바다(sRGB 71 109 143)쯤으로 보인다 (전 옥빛 0.30 0.48 0.52)
+const SUNSET_SEA = [0.36, 0.33, 0.38];  // 노을 바다: 하늘을 비춘 회보라 (설치 화면 앞바다 sRGB 97 88 90, 먼 바다 156 128 114)
+const SUNSET_SEA_GLOW = [0.13, 0.11, 0.12];  // 노을빛 조명만으로는 갈색으로 어두워져, 하늘이 비친 빛을 조금 더한다
 // 섬: 숲 + 바위 섬 (2026-10-06 밤, 작가 사진 33번 가운데 섬. 설치 화면 godot/shaders/island_body.gdshaderinc와 같은 규칙):
 // 가파른 곳(물가 절벽)은 분홍빛 화강암, 완만한 곳은 물가까지 숲, 봉우리 꼭대기는 숲. 물가는 젖은 짙은 띠와 군데군데 흰 물결.
 // (같은 날 낮에는 섬 전체가 숲, 그 전에는 높이로 나눠 꼭대기만 숲)
@@ -228,6 +234,37 @@ function landRadius(hm) {
   return r;
 }
 
+// 잔물결: 짧은 밝은 결(하늘이 비침)과 어두운 결(물결 그늘)을 흩뿌린 무늬를 바다에 촘촘히 깐다.
+// 무늬 한 장이 약 18m: 섬 가까이에서는 잔결로, 멀리서는 안개에 섞여 사라진다
+function rippleTexture(radius) {
+  const cv = document.createElement("canvas");
+  cv.width = 256;
+  cv.height = 256;
+  const ctx = cv.getContext("2d");
+  ctx.fillStyle = "#e8e8e8";
+  ctx.fillRect(0, 0, 256, 256);
+  let s = 7;
+  const rand = () => ((s = (s * 16807) % 2147483647) - 1) / 2147483646;
+  for (let k = 0; k < 520; k++) {
+    const x = rand() * 256, y = rand() * 256, w = 8 + rand() * 34, light = rand() < 0.42;
+    ctx.strokeStyle = light ? `rgba(255,255,255,${0.3 + rand() * 0.4})` : `rgba(70,72,84,${0.12 + rand() * 0.2})`;
+    ctx.lineWidth = 0.7 + rand() * 1.5;
+    for (const dx of [0, -256, 256]) {  // 가장자리에서 이어지게
+      ctx.beginPath();
+      ctx.moveTo(x + dx, y);
+      ctx.quadraticCurveTo(x + dx + w / 2, y - 1.2 + rand() * 2.4, x + dx + w, y);
+      ctx.stroke();
+    }
+  }
+  const tex = new CanvasTexture(cv);
+  tex.colorSpace = SRGBColorSpace;
+  tex.wrapS = tex.wrapT = RepeatWrapping;
+  const span = radius * 60 * 2;  // 바다 원의 지름
+  tex.repeat.set(span / 18, span / 18 / 4);  // 가로로 길쭉한 결
+  tex.anisotropy = 8;
+  return tex;
+}
+
 // 하늘 배경 그림: 위(top)에서 수평선(horizon) 쪽으로 옅어진다. 수평선 자리(화면 위에서의 비율)는 보는 각도에 따라
 // 바뀌므로 각도가 바뀔 때마다 다시 칠한다 (2×256 그림이라 가볍다)
 function skyBackground(top, mid, horizon) {
@@ -266,7 +303,7 @@ export function createIslandView(canvas, { heightmap, elements, mood, seedText, 
   const horizonRGB = sunset ? SUNSET_HORIZON : SKY_HORIZON;
   const sky = new Color().setRGB(...horizonRGB, SRGBColorSpace);  // 안개 색
   const scene = new Scene();
-  const skyTex = skyBackground(skyRGB, sunset ? mix(skyRGB, horizonRGB, 0.5) : SKY_MID, horizonRGB);
+  const skyTex = skyBackground(skyRGB, sunset ? SUNSET_MID : SKY_MID, horizonRGB);
   scene.background = skyTex;
 
   let top = SEA_LEVEL;
@@ -289,14 +326,16 @@ export function createIslandView(canvas, { heightmap, elements, mood, seedText, 
   }
   scene.add(island);
 
-  const seaMat = new MeshStandardMaterial({ roughness: 0.35, metalness: 0.0 });  // 불투명: 바다 밑 지형의 네모난 끝이 비치지 않게
-  seaMat.color.setRGB(...SEA, SRGBColorSpace);
+  // 불투명: 바다 밑 지형의 네모난 끝이 비치지 않게. 잔물결 무늬(2026-10-12): 전에는 한 가지 색 판이라 섬이 떠 보였다
+  const seaMat = new MeshStandardMaterial({ roughness: 0.32, metalness: 0.0, map: rippleTexture(radius) });
+  seaMat.color.setRGB(...(sunset ? SUNSET_SEA : SEA), SRGBColorSpace);
+  if (sunset) seaMat.emissive.setRGB(...SUNSET_SEA_GLOW, SRGBColorSpace);
   const sea = new Mesh(new CircleGeometry(radius * 60, 96), seaMat);  // 끝이 안개 너머로 사라지게 넓게
   sea.rotation.x = -Math.PI / 2;
   scene.add(sea);
 
   const hemi = new HemisphereLight(0xffffff, 0x404a46, 3.2);
-  hemi.color.setRGB(...(sunset ? SUNSET_SKY : SKY_LIGHT), SRGBColorSpace);
+  hemi.color.setRGB(...(sunset ? SUNSET_LIGHT : SKY_LIGHT), SRGBColorSpace);
   scene.add(hemi);
   const sun = new DirectionalLight(0xffffff, sunset ? 2.6 : 2.2);
   sun.color.setRGB(...(sunset ? [1.0, 0.8, 0.62] : [1.0, 0.98, 0.95]), SRGBColorSpace);
