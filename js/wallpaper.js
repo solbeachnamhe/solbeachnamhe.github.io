@@ -5,7 +5,7 @@
 // - QR은 웹캠이 한 뼘 거리에서 읽는 크기(420px)와 흰 바탕의 검은 무늬를 그대로 지킨다.
 
 import { qrCanvas } from "./qr.js";
-import { stampCanvas } from "./stamp.js?v=20261012h";
+import { stampCanvas } from "./stamp.js?v=20261012i";
 
 export const W = 1170, H = 2532;  // 요즘 휴대폰 세로 화면
 const PAPER = "#f4f0e8", INK = "#1f2a2b", INK2 = "#5f6a6a";

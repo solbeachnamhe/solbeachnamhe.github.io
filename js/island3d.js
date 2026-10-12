@@ -5,7 +5,7 @@ import {
   ACESFilmicToneMapping, BoxGeometry, BufferAttribute, BufferGeometry, CanvasTexture, CircleGeometry, Color, ConeGeometry,
   CylinderGeometry, DirectionalLight, Fog, Group, HemisphereLight, MathUtils, Mesh, MeshLambertMaterial,
   MeshStandardMaterial, PerspectiveCamera, RepeatWrapping, SRGBColorSpace, Scene, SphereGeometry, TorusGeometry, WebGLRenderer,
-} from "../vendor/three.min.js?v=20261012h";  // 2026-10-12 RepeatWrapping을 더해 다시 묶음
+} from "../vendor/three.min.js?v=20261012i";  // 2026-10-12 RepeatWrapping을 더해 다시 묶음
 import { N, PIXEL_M, SEA_LEVEL, UNITS_PER_M, fnv1a } from "./generator.js";
 
 // 색 (sRGB). 2026-10-05 설치 화면에 맞춤 (작가가 고른 사진 assets/field_photos/04_수평선/한낮/11_KakaoTalk_…_08.jpg):

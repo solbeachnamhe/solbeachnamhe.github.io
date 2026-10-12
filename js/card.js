@@ -6,12 +6,12 @@ import { ANSWERS, CARD_FOOTER, ISLAND_NAMES, PLACES } from "./content.js";
 import { place } from "./elements.js";
 import { generate } from "./generator.js";
 // ?v=: 2026-10-12 바뀐 파일. 휴대폰이 예전 것을 기억하지 않게 (index.html의 card.js?v=와 같이 올린다)
-import { createIslandView } from "./island3d.js?v=20261012h";
+import { createIslandView } from "./island3d.js?v=20261012i";
 import { fromString, seedDate, tone } from "./seed.js";
-import { stampCanvas } from "./stamp.js?v=20261012h";
+import { stampCanvas } from "./stamp.js?v=20261012i";
 import { cardUrl, qrCanvas } from "./qr.js";
-import { makeWallpaper } from "./wallpaper.js?v=20261012h";
-import { archipelagoMapSVG } from "./archipelago.js?v=20261012h";
+import { makeWallpaper } from "./wallpaper.js?v=20261012i";
+import { archipelagoMapSVG } from "./archipelago.js?v=20261012i";
 
 const $ = (id) => document.getElementById(id);
 
@@ -141,12 +141,26 @@ function setupTurn(view) {
   return set;
 }
 
+// 안내 화면: 주소에 섬이 없을 때 (2026-10-12 작가). 작품 소개와 소원증 받는 법, 돌려 볼 수 있는 예시 섬 -------------
+
+// 예시 섬: 기준 벡터의 가족 섬(tests/golden category_family). 파란 하늘, 다랭이논이 보인다
+const EXAMPLE_SEED = "AcNCDuIVaazAN6mczdw08ZWHI6pkkwBhbvp-j2aAnTT6tlpRcsp7kPfUZEhIqVesBKpei4Y4Ccg0AA";
+
+function showLanding() {
+  document.body.classList.add("missing");
+  if (location.hash.replace(/^#/, "").trim()) $("landing-error").hidden = false;  // 주소에 무언가 있었는데 못 읽었다
+  const seed = fromString(EXAMPLE_SEED);
+  const hm = generate(seed);
+  const { elements, mood } = place(seed, hm);
+  createIslandView($("landing-island"), { heightmap: hm, elements, mood, seedText: EXAMPLE_SEED, tone: tone(seed) });
+}
+
 // 시작 ------------------------------------------------------------------------
 
 function main() {
   const found = readSeed();
   if (!found) {
-    document.body.classList.add("missing");
+    showLanding();
     return;
   }
   const { seed, text, full, order } = found;

@@ -12,7 +12,7 @@
   <title>몽돌의 소원</title>
   <link rel="preload" href="fonts/mongdol-serif-700.woff" as="font" type="font/woff" crossorigin>
   <link rel="preload" href="fonts/mongdol-sans-400.woff" as="font" type="font/woff" crossorigin>
-  <link rel="stylesheet" href="css/card.css?v=20261012h">
+  <link rel="stylesheet" href="css/card.css?v=20261012l">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
 </head>
 <body>
@@ -86,17 +86,46 @@
     <footer class="foot">
       <p id="footer-line" class="closing"></p>
       <p class="fine">남해 소노 호텔 · 인터랙티브 미디어 아트</p>
-      <p class="fine">이 페이지는 아무 정보도 모으거나 보내지 않습니다. 섬은 주소에 담긴 숫자로만 다시 그립니다.</p>
+      <!-- 2026-10-12: "모으거나 보내지 않습니다"는 호스팅 업체의 접속 기록까지 없다는 뜻으로 읽힐 수 있어 바로잡음 (privacy.html) -->
+      <p class="fine">이 페이지는 아무 정보도 모으지 않습니다. 섬은 주소의 # 뒤 숫자로만 다시 그리며, 이 숫자는 서버로 가지 않습니다.</p>
+      <p class="fine"><a href="privacy.html">개인정보 안내</a></p>
     </footer>
   </main>
 
-  <section class="missing-msg" aria-live="polite">
+  <!-- 안내 화면 (2026-10-12 작가): 주소에 섬이 없을 때. 전에는 "섬을 찾을 수 없어요" 한 줄만 있는 막다른 화면이었다 -->
+  <section class="landing" aria-label="몽돌의 소원 안내">
     <p class="wordmark">몽돌의 소원</p>
-    <h1>섬을 찾을 수 없어요</h1>
-    <p>설치 화면의 QR을 휴대폰 카메라로 다시 비춰 주세요.</p>
+    <p id="landing-error" class="landing-error" role="status" hidden>이 주소에서 섬을 읽지 못했어요. 작품 화면의 QR을 다시 비춰 주세요.</p>
+    <figure class="landing-stage">
+      <canvas id="landing-island" aria-label="손가락으로 돌려 볼 수 있는 예시 섬"></canvas>
+      <figcaption>예시 섬 · 손가락으로 돌려 보세요</figcaption>
+    </figure>
+    <h1 class="landing-title">몽돌을 쌓고 소원을 말하면,<br>그 목소리가 섬이 되어요</h1>
+    <p class="landing-lead">남해 소노 호텔의 전시 공간에서 손짓으로 몽돌 다섯 개를 쌓고 소원을 말하면,
+      목소리와 손짓이 세상에 하나뿐인 섬이 되어 바다에서 솟아오릅니다.</p>
+    <ol class="ledger">
+      <li class="entry">
+        <p class="entry-head">소원증 받기</p>
+        <p class="entry-body">체험이 끝나면 작품 화면에 30초 동안 QR이 나와요. 휴대폰 카메라로 비추면 내 섬의 소원증이 열려요.</p>
+      </li>
+      <li class="entry">
+        <p class="entry-head">섬 간직하기</p>
+        <p class="entry-body">소원증의 섬 그림을 사진첩에 저장해 배경화면으로 쓸 수 있어요.</p>
+      </li>
+      <li class="entry">
+        <p class="entry-head">다시 찾아오기</p>
+        <p class="entry-body">소원이 이루어지면 다시 와서, 소원증의 QR을 작품 화면 위 카메라에 비춰 주세요. 당신의 섬이 바다에서 다시 솟아올라요.</p>
+      </li>
+    </ol>
+    <footer class="foot">
+      <p class="closing">말한 소원은 녹음되거나 어디에 적히지 않아요.</p>
+      <p class="fine">남해 소노 호텔 · 인터랙티브 미디어 아트</p>
+      <p class="fine">이 페이지는 아무 정보도 모으지 않습니다.</p>
+      <p class="fine"><a href="privacy.html">개인정보 안내</a></p>
+    </footer>
   </section>
 
   <!-- ?v=: 바뀐 파일을 휴대폰이 예전 것으로 기억하지 않게 (바꿀 때마다 날짜를 올린다) -->
-  <script type="module" src="js/card.js?v=20261012h"></script>
+  <script type="module" src="js/card.js?v=20261012i"></script>
 </body>
 </html>
