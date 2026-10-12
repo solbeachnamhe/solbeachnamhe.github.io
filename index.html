@@ -12,15 +12,16 @@
   <title>몽돌의 소원</title>
   <link rel="preload" href="fonts/mongdol-serif-700.woff" as="font" type="font/woff" crossorigin>
   <link rel="preload" href="fonts/mongdol-sans-400.woff" as="font" type="font/woff" crossorigin>
-  <link rel="stylesheet" href="css/card.css?v=20261012l">
+  <link rel="preload" href="fonts/mongdol-sans-600.woff" as="font" type="font/woff" crossorigin>
+  <link rel="stylesheet" href="css/card.css?v=20261012n">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
 </head>
 <body>
   <!-- 2026-10-12 디자인 "섬의 증서": 종이, 여백, 도장. 첫 화면은 섬 그림 하나와 저장 버튼 (2026-10-07 작가 1안),
-       같은 자리에서 3D 섬으로 돌려 본다. 아래는 바다의 대답과 번호 붙은 네 칸 -->
+       같은 자리에서 3D 섬으로 돌려 본다. 아래는 바다의 대답과 번호 붙은 네 상자 (2026-10-12 작가: 둥근 상자 구성) -->
   <main class="card">
     <section class="hero" aria-label="내 섬">
-      <p class="wordmark">몽돌의 소원</p>
+      <p class="wordmark brand"><img src="icon.svg" alt="">몽돌의 소원</p>
       <div class="stage">
         <img id="picture" alt="내 섬 그림. 다시 찾아올 때 비출 QR이 함께 담겨 있어요" hidden>
         <canvas id="island" aria-label="손가락으로 돌려 볼 수 있는 섬" hidden></canvas>
@@ -33,7 +34,9 @@
       <h1 id="island-name">소원의 섬</h1>
       <p id="island-date" class="meta"></p>
       <p id="island-revisits" class="revisits" hidden></p>
-      <button id="save-picture" class="primary" type="button" disabled>사진첩에 저장</button>
+      <button id="save-picture" class="primary" type="button" disabled>
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19.5h14"/></svg>사진첩에 저장
+      </button>
       <p id="save-how" class="save-how"></p>
       <p id="save-status" class="status" role="status"></p>
     </section>
@@ -92,33 +95,44 @@
     </footer>
   </main>
 
-  <!-- 안내 화면 (2026-10-12 작가): 주소에 섬이 없을 때. 전에는 "섬을 찾을 수 없어요" 한 줄만 있는 막다른 화면이었다 -->
+  <!-- 안내 화면 (2026-10-12 작가): 주소에 섬이 없을 때. 전에는 "섬을 찾을 수 없어요" 한 줄만 있는 막다른 화면이었다.
+       구성 (2026-10-12 작가): 화면 폭 가득한 섬 그림, 작은 머리말과 큰 제목, 아이콘 목록, 약속 상자, 아래 개인정보 안내 -->
   <section class="landing" aria-label="몽돌의 소원 안내">
-    <p class="wordmark">몽돌의 소원</p>
-    <p id="landing-error" class="landing-error" role="status" hidden>이 주소에서 섬을 읽지 못했어요. 작품 화면의 QR을 다시 비춰 주세요.</p>
+    <p class="brand"><img src="icon.svg" alt="">몽돌의 소원</p>
     <figure class="landing-stage">
       <canvas id="landing-island" aria-label="손가락으로 돌려 볼 수 있는 예시 섬"></canvas>
-      <figcaption>예시 섬 · 손가락으로 돌려 보세요</figcaption>
+      <figcaption>예시 섬 · 돌려 보세요</figcaption>
     </figure>
-    <h1 class="landing-title">몽돌을 쌓고 소원을 말하면,<br>그 목소리가 섬이 되어요</h1>
-    <p class="landing-lead">남해 소노 호텔의 전시 공간에서 손짓으로 몽돌 다섯 개를 쌓고 소원을 말하면,
-      목소리와 손짓이 세상에 하나뿐인 섬이 되어 바다에서 솟아오릅니다.</p>
-    <ol class="ledger">
-      <li class="entry">
-        <p class="entry-head">소원증 받기</p>
-        <p class="entry-body">체험이 끝나면 작품 화면에 30초 동안 QR이 나와요. 휴대폰 카메라로 비추면 내 섬의 소원증이 열려요.</p>
+    <div class="intro">
+      <p id="landing-error" class="landing-error" role="status" hidden>이 주소에서 섬을 읽지 못했어요. 작품 화면의 QR을 다시 비춰 주세요.</p>
+      <p class="kicker">남해 · 인터랙티브 미디어 아트</p>
+      <h1 class="landing-title">몽돌을 쌓고 소원을 말하면,<br>그 목소리가 섬이 되어요</h1>
+      <p class="landing-lead">남해 소노 호텔의 전시 공간에서 손짓으로 몽돌 다섯 개를 쌓고 소원을 말하면,
+        목소리와 손짓이 세상에 하나뿐인 섬이 되어 바다에서 솟아오릅니다.</p>
+    </div>
+    <ul class="rows">
+      <li>
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="6.5" height="6.5" rx="1.2"/><rect x="14" y="3.5" width="6.5" height="6.5" rx="1.2"/><rect x="3.5" y="14" width="6.5" height="6.5" rx="1.2"/><path d="M14 14h2.5v2.5M20.5 14v6.5H17M14 18.5v2"/></svg>
+        <div><p class="row-title">소원증 받기</p>
+          <p class="row-sub">체험이 끝나면 작품 화면에 30초 동안 QR이 나와요. 휴대폰 카메라로 비추면 내 섬의 소원증이 열려요.</p></div>
       </li>
-      <li class="entry">
-        <p class="entry-head">섬 간직하기</p>
-        <p class="entry-body">소원증의 섬 그림을 사진첩에 저장해 배경화면으로 쓸 수 있어요.</p>
+      <li>
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="3"/><path d="m3.5 16 4.5-4.5 3.5 3.5 3-3 6 6"/><circle cx="15.5" cy="9" r="1.6"/></svg>
+        <div><p class="row-title">섬 간직하기</p>
+          <p class="row-sub">소원증의 섬 그림을 사진첩에 저장해 배경화면으로 쓸 수 있어요.</p></div>
       </li>
-      <li class="entry">
-        <p class="entry-head">다시 찾아오기</p>
-        <p class="entry-body">소원이 이루어지면 다시 와서, 소원증의 QR을 작품 화면 위 카메라에 비춰 주세요. 당신의 섬이 바다에서 다시 솟아올라요.</p>
+      <li>
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3"/><path d="M4.5 4.5v4h4"/></svg>
+        <div><p class="row-title">다시 찾아오기</p>
+          <p class="row-sub">소원이 이루어지면 다시 와서, 소원증의 QR을 작품 화면 위 카메라에 비춰 주세요. 당신의 섬이 바다에서 다시 솟아올라요.</p></div>
       </li>
-    </ol>
+    </ul>
+    <div class="promise">
+      <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/></svg>
+      <div><p class="row-title">말한 소원은 녹음되거나 어디에 적히지 않아요</p>
+        <p class="row-sub">모습도 화면에 나오지 않고 저장되지 않아요.</p></div>
+    </div>
     <footer class="foot">
-      <p class="closing">말한 소원은 녹음되거나 어디에 적히지 않아요.</p>
       <p class="fine">남해 소노 호텔 · 인터랙티브 미디어 아트</p>
       <p class="fine">이 페이지는 아무 정보도 모으지 않습니다.</p>
       <p class="fine"><a href="privacy.html">개인정보 안내</a></p>
