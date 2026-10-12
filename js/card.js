@@ -6,11 +6,11 @@ import { ANSWERS, CARD_FOOTER, ISLAND_NAMES, PLACES } from "./content.js";
 import { place } from "./elements.js";
 import { generate } from "./generator.js";
 // ?v=: 2026-10-12 바뀐 파일. 휴대폰이 예전 것을 기억하지 않게 (index.html의 card.js?v=와 같이 올린다)
-import { createIslandView } from "./island3d.js?v=20261012i";
+import { createIslandView } from "./island3d.js?v=20261013a";
 import { fromString, seedDate, tone } from "./seed.js";
 import { stampCanvas } from "./stamp.js?v=20261012i";
 import { cardUrl, qrCanvas } from "./qr.js";
-import { makeWallpaper } from "./wallpaper.js?v=20261012i";
+import { makeWallpaper } from "./wallpaper.js?v=20261013a";
 import { archipelagoMapSVG } from "./archipelago.js?v=20261012i";
 
 const $ = (id) => document.getElementById(id);

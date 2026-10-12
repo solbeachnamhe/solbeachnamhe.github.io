@@ -49,7 +49,7 @@ function roundRect(ctx, x, y, w, h, r) {
 
 async function fontsReady() {
   // 그림에 그리기 전에 글꼴을 읽어 둔다 (못 읽으면 휴대폰 글꼴로)
-  await Promise.all([`700 76px ${SERIF}`, `400 44px ${SERIF}`, `500 30px ${SANS}`, `400 34px ${SANS}`]
+  await Promise.all([`600 76px ${SANS}`, `400 44px ${SERIF}`, `500 30px ${SANS}`, `400 34px ${SANS}`]
     .map((f) => document.fonts.load(f).catch(() => null)));
 }
 
@@ -76,7 +76,8 @@ export async function makeWallpaper(view, info) {
   const sceneTop = Math.round(H * 0.12), sceneH = Math.round(H * 0.46), sceneBottom = sceneTop + sceneH;
   ctx.fillStyle = `rgb(${rgb})`;
   ctx.fillRect(0, 0, W, sceneTop + 2);
-  const scene = view.snapshot(W, sceneH, { fill: 0.8 });
+  // 섬이 그림의 주인공 (2026-10-13 3D 점검 7번: 전 fill 0.8은 배까지 넣느라 섬이 화면 폭의 약 1/4). 배는 섬 곁으로 당겨 온다
+  const scene = view.snapshot(W, sceneH, { fill: 0.9, land: true });
   ctx.drawImage(scene, 0, sceneTop);
   const fadeTop = ctx.createLinearGradient(0, sceneTop, 0, sceneTop + H * 0.06);  // 하늘끼리 이어지게
   fadeTop.addColorStop(0, `rgba(${rgb},1)`);
@@ -120,11 +121,12 @@ export async function makeWallpaper(view, info) {
   ctx.fillText("몽돌의 소원 · 남해", left, y);
   y += 62;
   ctx.fillStyle = INK;
+  // 섬 이름은 굵은 고딕 (2026-10-12 작가: 소원증 화면의 제목과 같게). 대답은 명조 그대로
   let nameSize = 76;
-  ctx.font = `700 ${nameSize}px ${SERIF}`;
+  ctx.font = `600 ${nameSize}px ${SANS}`;
   while (ctx.measureText(info.name).width > textW - seal - 10 && nameSize > 60) {  // 긴 이름은 도장에 닿지 않게
     nameSize -= 2;
-    ctx.font = `700 ${nameSize}px ${SERIF}`;
+    ctx.font = `600 ${nameSize}px ${SANS}`;
   }
   ctx.fillText(info.name, left, y);
   y += 116;
