@@ -374,6 +374,8 @@ textarea {
   margin-top: 14px;
   padding: 14px 16px;
   font: inherit;
+  /* 소원 글은 아무 글자나 올 수 있다: 글자를 덜어 낸 소원증 글꼴 대신 휴대폰 글꼴로 (글자가 섞여 보이지 않게, 2026-11-11) */
+  font-family: system-ui, -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
   font-size: 16px;  /* 16px 아래면 아이폰이 확대한다 */
   line-height: 1.6;
   color: var(--ink);

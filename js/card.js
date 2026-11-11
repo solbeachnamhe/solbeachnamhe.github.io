@@ -1,28 +1,47 @@
 // 소원증 (S10). 주소의 # 뒤 IslandSeed만으로 설치 화면과 같은 섬을 다시 만든다.
 // 이 페이지는 아무것도 서버로 보내지 않는다 (index.html의 Content-Security-Policy: connect-src 'none').
 // "나만의 소원"은 이 휴대폰 브라우저 안(localStorage)에만 둔다.
+// 작품 화면의 QR에는 # 뒤 맨 끝에 "~글"(말한 소원을 글로 바꾼 것, brain/card.py)이 있을 수 있다 (2026-11-11 작가 결정).
+// 읽자마자 "나만의 소원" 칸으로 옮기고 주소에서 지운다. 다시 방문용 QR과 저장 그림에는 넣지 않는다.
 
-import { ANSWERS, CARD_FOOTER, ISLAND_NAMES, PLACES } from "./content.js";
+import { ANSWERS, CARD_FOOTER, ISLAND_NAMES, PLACES } from "./content.js?v=20261111a";  // 2026-11-11 장소 문구 고침
 import { place } from "./elements.js";
 import { generate } from "./generator.js";
 // ?v=: 2026-10-12 바뀐 파일. 휴대폰이 예전 것을 기억하지 않게 (index.html의 card.js?v=와 같이 올린다)
-import { createIslandView } from "./island3d.js?v=20261013a";
+import { createIslandView } from "./island3d.js?v=20261111a";
 import { fromString, seedDate, tone } from "./seed.js";
 import { stampCanvas } from "./stamp.js?v=20261012i";
 import { cardUrl, qrCanvas } from "./qr.js";
-import { makeWallpaper } from "./wallpaper.js?v=20261013a";
+import { makeWallpaper } from "./wallpaper.js?v=20261111a";
 import { archipelagoMapSVG } from "./archipelago.js?v=20261012i";
 
 const $ = (id) => document.getElementById(id);
 
+function decodeWish(part) {
+  // base64url → UTF-8 글. 못 읽으면 없는 것으로
+  if (!part || !/^[A-Za-z0-9_-]{1,400}$/.test(part)) return "";
+  try {
+    const b64 = part.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((part.length + 3) % 4);
+    const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+    return new TextDecoder("utf-8").decode(bytes).replace(/\s+/g, " ").trim().slice(0, 120);
+  } catch {
+    return "";
+  }
+}
+
 function readSeed() {
-  // # 뒤: 섬(IslandSeed) + 있으면 ".번호" (그날 몇 번째로 솟은 섬, 1부터. brain/card.py)
-  const full = decodeURIComponent(location.hash.replace(/^#/, "")).trim();
+  // # 뒤: 섬(IslandSeed) + 있으면 ".번호" (그날 몇 번째로 솟은 섬, 1부터) + 있으면 "~글" (말한 소원. brain/card.py)
+  const [head, wishPart] = location.hash.replace(/^#/, "").split("~", 2);
+  const spoken = decodeWish(wishPart);
+  if (wishPart !== undefined) {
+    try { history.replaceState(null, "", `${location.pathname}${location.search}#${head}`); } catch { /* 그대로 둔다 */ }
+  }
+  const full = decodeURIComponent(head).trim();
   if (!full) return null;
   const [text, num] = full.split(".", 2);
   const order = /^[1-9][0-9]{0,4}$/.test(num || "") ? Number(num) - 1 : null;
   try {
-    return { seed: fromString(text), text, full, order };
+    return { seed: fromString(text), text, full, order, spoken };
   } catch {
     return null;
   }
@@ -57,14 +76,20 @@ function memoStore(seedText) {
   };
 }
 
-function setupMemo(seedText) {
+function setupMemo(seedText, spoken) {
   const store = memoStore(seedText);
   const area = $("memo-text"), status = $("memo-status");
   area.value = store.get();
   const show = (msg) => { status.textContent = msg; };
+  if (!area.value && spoken) {  // 처음 연 소원증: 바다에 말한 소원을 이 칸에 옮겨 둔다 (고치거나 지울 수 있다)
+    area.value = spoken;
+    store.set(spoken);
+  }
   if (area.value) {  // 적어 둔 글이 있으면 펼쳐서 연다
     $("memo").open = true;
-    show("이 휴대폰에 적어 둔 소원이에요.");
+    show(spoken && area.value === spoken
+      ? "바다에 말한 소원을 글로 옮겨 왔어요. 잘못 들었으면 고쳐서 남겨 두세요."
+      : "이 휴대폰에 적어 둔 소원이에요.");
   }
   $("memo-save").addEventListener("click", () => {
     const v = area.value.trim();
@@ -85,6 +110,8 @@ function setupMemo(seedText) {
 // - 컴퓨터: 파일로 받기
 
 async function preparePicture(view, info) {
+  // 사진 하늘·무늬를 다 읽은 뒤에 그린다 (2026-11-11). 늦으면 5초 뒤 계산한 그대로
+  await Promise.race([view.ready, new Promise((r) => setTimeout(r, 5000))]);
   const canvas = await makeWallpaper(view, info);
   const blob = await new Promise((r) => canvas.toBlob(r, "image/png"));
   const file = new File([blob], "mongdol-island.png", { type: "image/png" });
@@ -163,11 +190,11 @@ function main() {
     showLanding();
     return;
   }
-  const { seed, text, full, order } = found;
+  const { seed, text, full, order, spoken } = found;
   const hm = generate(seed);
   const { elements, mood } = place(seed, hm);
   const date = formatDate(seedDate(seed));
-  const cat = seed.category;
+  const cat = seed.category === 9 ? 0 : seed.category;  // 해로운 소원(9)은 큰 화면처럼 일반 대답·이름으로 (2026-11-11)
   const url = cardUrl(full);  // 다시 방문용 QR에도 번호를 둔다 (웹캠은 번호를 버리고 섬만 읽는다)
   const info = { name: ISLAND_NAMES[cat], answer: ANSWERS[cat], hm, stampDate: date.short, qr: url,
     date: date.long, order };
@@ -196,7 +223,7 @@ function main() {
   const still = new URLSearchParams(location.search).has("still");
   const view = createIslandView($("island"), { heightmap: hm, elements, mood, seedText: text, tone: tone(seed),
     autoRotate: !still, active: false });
-  setupMemo(text);
+  setupMemo(text, spoken);
   document.body.classList.add("ready");
   preparePicture(view, info).then((file) => {
     setupSave(file);

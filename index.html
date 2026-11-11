@@ -13,7 +13,7 @@
   <link rel="preload" href="fonts/mongdol-serif-700.woff" as="font" type="font/woff" crossorigin>
   <link rel="preload" href="fonts/mongdol-sans-400.woff" as="font" type="font/woff" crossorigin>
   <link rel="preload" href="fonts/mongdol-sans-600.woff" as="font" type="font/woff" crossorigin>
-  <link rel="stylesheet" href="css/card.css?v=20261012n">
+  <link rel="stylesheet" href="css/card.css?v=20261111a">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
 </head>
 <body>
@@ -74,9 +74,10 @@
       <li class="entry">
         <details id="memo" class="memo">
           <summary class="entry-head">나만의 소원 적어두기</summary>
-          <p class="entry-note">바다에 말한 소원은 어디에도 남지 않았어요. 기억하고 싶다면 여기에 적어 두세요.
-            이 글은 <strong>이 휴대폰의 이 소원증 안에만</strong> 남고, 어디로도 보내지 않아요. 다시 열면 그대로 보여요.</p>
-          <textarea id="memo-text" rows="4" maxlength="500" placeholder="나만 보는 소원" autocomplete="off"></textarea>
+          <p class="entry-note">바다에 말한 소원을 글로 옮겨 이 칸에 담아 왔어요. 잘못 들었으면 고치고, 원하지 않으면 지우세요.
+            이 글은 <strong>이 휴대폰의 이 소원증 안에만</strong> 남고, 어디로도 보내지 않아요. 함께 온 분 휴대폰에도
+            같은 글이 담겨요. 아이폰은 한동안 열지 않으면 지워질 수 있어요.</p>
+          <textarea id="memo-text" rows="4" maxlength="200" placeholder="나만 보는 소원" autocomplete="off"></textarea>
           <div class="memo-buttons">
             <button id="memo-save" type="button" class="small">남겨 두기</button>
             <button id="memo-clear" type="button" class="small quiet">지우기</button>
@@ -114,7 +115,7 @@
       <li>
         <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="6.5" height="6.5" rx="1.2"/><rect x="14" y="3.5" width="6.5" height="6.5" rx="1.2"/><rect x="3.5" y="14" width="6.5" height="6.5" rx="1.2"/><path d="M14 14h2.5v2.5M20.5 14v6.5H17M14 18.5v2"/></svg>
         <div><p class="row-title">소원증 받기</p>
-          <p class="row-sub">체험이 끝나면 작품 화면에 30초 동안 QR이 나와요. 휴대폰 카메라로 비추면 내 섬의 소원증이 열려요.</p></div>
+          <p class="row-sub">체험 끝에 민들레를 후— 불고 나면 작품 화면에 QR이 나와요. 휴대폰 카메라로 비추면 내 섬의 소원증이 열려요. 함께 온 분도 각자 비춰 같은 섬을 가져갈 수 있어요.</p></div>
       </li>
       <li>
         <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="3"/><path d="m3.5 16 4.5-4.5 3.5 3.5 3-3 6 6"/><circle cx="15.5" cy="9" r="1.6"/></svg>
@@ -140,6 +141,6 @@
   </section>
 
   <!-- ?v=: 바뀐 파일을 휴대폰이 예전 것으로 기억하지 않게 (바꿀 때마다 날짜를 올린다) -->
-  <script type="module" src="js/card.js?v=20261013a"></script>
+  <script type="module" src="js/card.js?v=20261111a"></script>
 </body>
 </html>

@@ -2,11 +2,11 @@
 // 높이 지도 → 지형 메시 (1픽셀 = 4m, 해수면 = y 0). 처음에는 설치 화면처럼 관람객 쪽(앞면)을 낮은 각도에서 본다.
 
 import {
-  ACESFilmicToneMapping, BoxGeometry, BufferAttribute, BufferGeometry, CanvasTexture, CircleGeometry, Color, ConeGeometry,
-  CylinderGeometry, DataTexture, DirectionalLight, Fog, Group, HemisphereLight, LinearFilter, MathUtils, Mesh,
-  MeshStandardMaterial, PCFSoftShadowMap, PerspectiveCamera, RepeatWrapping, SRGBColorSpace, Scene, SphereGeometry,
-  TorusGeometry, WebGLRenderer,
-} from "../vendor/three.min.js?v=20261013a";  // 2026-10-13 그림자·물가 무늬(DataTexture, LinearFilter, PCFSoftShadowMap)를 더해 다시 묶음
+  ACESFilmicToneMapping, BackSide, BoxGeometry, BufferAttribute, BufferGeometry, CanvasTexture, CircleGeometry,
+  ClampToEdgeWrapping, Color, ConeGeometry, CylinderGeometry, DataTexture, DirectionalLight, Fog, Group, HemisphereLight,
+  LinearFilter, MathUtils, Mesh, MeshStandardMaterial, PCFSoftShadowMap, PerspectiveCamera, RepeatWrapping, SRGBColorSpace,
+  Scene, ShaderMaterial, SphereGeometry, TextureLoader, TorusGeometry, WebGLRenderer,
+} from "../vendor/three.min.js?v=20261111a";  // 2026-11-11 사진 재료(TextureLoader 등)를 더해 다시 묶음
 import { N, PIXEL_M, SEA_LEVEL, UNITS_PER_M, fnv1a } from "./generator.js";
 
 // 색 (sRGB). 2026-10-05 설치 화면에 맞춤 (작가가 고른 사진 assets/field_photos/04_수평선/한낮/11_KakaoTalk_…_08.jpg):
@@ -24,7 +24,7 @@ const SUNSET_SKY = [0.80, 0.72, 0.74];
 const SUNSET_MID = [0.86, 0.77, 0.74];
 const SUNSET_HORIZON = [0.92, 0.81, 0.72];
 const SUNSET_LIGHT = [0.95, 0.80, 0.70];  // 섬을 비추는 노을빛 (섬 색은 전과 같게)
-const SEA = [0.24, 0.355, 0.43];  // 짙은 파랑. 조명을 받아 설치 화면 가운데 바다(sRGB 71 109 143)쯤으로 보인다 (전 옥빛 0.30 0.48 0.52)
+const SEA = [0.09, 0.22, 0.38];  // 2026-11-11 하늘을 비추게 하며 큰 화면 바다 사진의 짙은 파랑 쪽으로 (전 0.24 0.355 0.43)  // 짙은 파랑. 조명을 받아 설치 화면 가운데 바다(sRGB 71 109 143)쯤으로 보인다 (전 옥빛 0.30 0.48 0.52)
 const SUNSET_SEA = [0.36, 0.33, 0.38];  // 노을 바다: 하늘을 비춘 회보라 (설치 화면 앞바다 sRGB 97 88 90, 먼 바다 156 128 114)
 const SUNSET_SEA_GLOW = [0.13, 0.11, 0.12];  // 노을빛 조명만으로는 갈색으로 어두워져, 하늘이 비친 빛을 조금 더한다
 // 섬: 숲 + 바위 섬 (2026-10-06 밤, 작가 사진 33번 가운데 섬. 설치 화면 godot/shaders/island_body.gdshaderinc와 같은 규칙):
@@ -42,6 +42,59 @@ const SURF = [0.86, 0.90, 0.93];  // 밑동의 하얀 물결 (island_body surf_t
 const SURF_TOP = 2.4;  // 하얀 물결 띠 높이 (m)
 const SEABED = [0.28, 0.33, 0.30];
 const SHALLOW = [0.2, 0.43, 0.44];  // 섬 둘레 얕은 물의 옥빛 (바다에 40%까지 섞는다)
+
+// 사진 재료 (2026-11-11 작가 "지금 바로", 3D 검수 1~5번 묶음): 큰 화면과 같은 하늘 사진(먼 섬 둘)과 숲 지붕·화강암 사진 무늬.
+// tools/make_web_card_assets.py가 web/img/에 작게 만든다 (합쳐 약 0.35MB). 처음에는 계산한 하늘·무늬로 바로 보이고,
+// 사진을 다 읽으면 바꿔 다시 그린다 (못 읽으면 계산한 그대로)
+const IMG_V = "?v=20261111a";
+const SKY_JSON = { top: [0.2622, 0.6042, 0.9844], horizon: [0.5461, 0.7593, 0.9727], top_deg: 22.0 };  // web/img/sky.json과 같게
+const SEA_HAZE = [0.27, 0.46, 0.72];  // 수평선 바로 앞 바다 (사진 32번 sRGB 약 92 140 200)
+const SUNSET_TINT = [1.0, 0.86, 0.80];  // 노을 섬: 사진 하늘을 따뜻하게 (설치 화면 SUNSET_LAND처럼)
+const SUNSET_WARM = [0.98, 0.78, 0.62];  // 노을 수평선 (world.gd sky_horizon_color)
+
+// 하늘: 한 바퀴 하늘 띠 (위로 SKY_JSON.top_deg까지). 바다도 이 하늘을 비춘다 (같은 함수)
+const SKY_SAMPLE = /* glsl */`
+uniform sampler2D uSky;
+uniform float uSkyHas;
+uniform float uSkyAz0;
+uniform float uSkyTopDeg;
+uniform vec3 uSkyTop;
+uniform vec3 uSkyMid;
+uniform vec3 uSkyHorizon;
+uniform vec3 uSkyTint;
+uniform vec3 uSkyWarm;
+uniform float uSkyWarmMix;
+vec3 skyGrad(float v) {
+  vec3 grad = mix(uSkyHorizon, uSkyMid, smoothstep(0.0, 0.45, v));
+  return mix(grad, uSkyTop, smoothstep(0.45, 1.0, v));
+}
+vec3 skyAt(vec3 d) {
+  float el = asin(clamp(d.y, -1.0, 1.0));
+  float v = el / radians(uSkyTopDeg);
+  vec3 grad = skyGrad(v);
+  float u = 0.5 + (atan(d.x, -d.z) - uSkyAz0) / 6.2831853;
+  vec3 photo = texture(uSky, vec2(u, clamp(v, 0.004, 0.996))).rgb;
+  photo = v > 1.0 ? uSkyTop : photo;
+  vec3 c = mix(grad, photo, uSkyHas) * uSkyTint;
+  return mix(c, uSkyWarm, uSkyWarmMix * (1.0 - smoothstep(0.0, 0.7, v)));
+}
+`;
+
+const SKY_VERT = /* glsl */`
+varying vec3 vDir;
+void main() {
+  vDir = position;
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+}
+`;
+const SKY_FRAG = /* glsl */`
+varying vec3 vDir;
+${SKY_SAMPLE}
+void main() {
+  gl_FragColor = vec4(skyAt(normalize(vDir)), 1.0);
+  #include <colorspace_fragment>
+}
+`;
 
 // 섬에 나무는 심지 않는다 (2026-10-05 작가, godot/scripts/island_elements.gd NO_TREES와 같게)
 const NO_TREES = ["camellia", "yuja"];
@@ -85,6 +138,10 @@ uniform vec3 uBroadleaf;
 uniform vec3 uGranite;
 uniform vec3 uSurf;
 uniform vec3 uSeabed;
+uniform float uTex;  // 1: 사진 무늬 (숲 지붕, 화강암)를 다 읽었다
+uniform sampler2D uCanopyTex;
+uniform sampler2D uCanopyNTex;
+uniform sampler2D uGraniteTex;
 varying vec3 vLocal;
 varying vec3 vWN;
 varying float vCav;
@@ -155,6 +212,12 @@ const TERRAIN_COLOR = /* glsl */`
   vec2 bumpBig = th_crowns(tq, 16.0, lightBig);
   vec2 bumpFine = th_crowns(tq + 3.7, 5.5, lightFine);
   float crownLight = mix(1.0, lightBig, 0.5 * bigK) * mix(1.0, lightFine, 0.55 * fineK);
+  float grainT = th_noise(tq * 0.08) * 0.6 + th_noise(tq * 0.4) * 0.4;
+  vec2 cuv = tq / 40.0;  // 설치 화면 island_body: 숲 지붕 사진 한 장이 40m
+  if (uTex > 0.5) {
+    float ct = texture(uCanopyTex, cuv).r;
+    crownLight = max(mix(1.0, ct * 2.0, 2.4), 0.2) * (0.9 + 0.2 * grainT);  // 평균 1, 나무 덩어리가 보이게 (canopy_contrast 2.4)
+  }
   vec3 forest = mix(uForestLow, uForestHigh, hr);
   float grove = smoothstep(0.55, 0.75, th_noise(tq * 0.012 + 7.0) * 0.7 + th_noise(tq * 0.05) * 0.3);
   forest = mix(forest, uBroadleaf, grove * 0.7) * crownLight * (1.0 + 0.1 * min(uTone, 0.0));
@@ -169,10 +232,18 @@ const TERRAIN_COLOR = /* glsl */`
   // 화강암: 위(xz)와 두 옆(zy, xy)에서 비춘 덩어리. 옆면은 가로로 긴 덩어리
   vec3 tw = pow(abs(tn), vec3(4.0));
   tw /= tw.x + tw.y + tw.z;
-  float rk = th_rock(tq, vec2(26.0)) * tw.y + th_rock(vec2(tp.z, th_h), vec2(30.0, 13.0)) * tw.x
-    + th_rock(vec2(tp.x, th_h), vec2(30.0, 13.0)) * tw.z;
+  vec3 rockBase;
+  if (uTex > 0.5) {  // 현장 사진 화강암 (설치 화면 island_body: 한 장 22m, 세기 0.85)
+    vec3 gp = vec3(tq.x, th_h, tq.y) / 22.0;
+    rockBase = (texture(uGraniteTex, gp.xz).rgb * tw.y + texture(uGraniteTex, gp.zy).rgb * tw.x
+      + texture(uGraniteTex, gp.xy).rgb * tw.z) * 0.7;  // 이 페이지는 빛이 밝아 설치 화면(0.85)보다 조금 낮게
+  } else {
+    rockBase = uGranite * (th_rock(tq, vec2(26.0)) * tw.y + th_rock(vec2(tp.z, th_h), vec2(30.0, 13.0)) * tw.x
+      + th_rock(vec2(tp.x, th_h), vec2(30.0, 13.0)) * tw.z);
+  }
   float lump = th_noise(tq * 0.06 + 9.0) * 0.6 + th_noise(tq * 0.17) * 0.4;
-  vec3 gr = uGranite * rk * (0.8 + 0.35 * lump) * (1.0 + 0.08 * max(uTone, 0.0));
+  vec3 gr = rockBase * (0.8 + 0.35 * lump) * (1.0 + 0.08 * max(uTone, 0.0));
+  if (uTex > 0.5) gr *= 1.0 - 0.4 * smoothstep(0.38, 0.22, lump);  // 바위 덩어리 사이 짙은 곳 (island_body와 같게)
   vec3 tc = mix(gr, forest, veg);
   // 물가 바위 띠와 절벽
   float edgeH = 4.5 * (0.6 + 0.8 * th_noise(tq * 0.03)) * (0.7 + 0.6 * smoothstep(0.02, 0.2, slope));
@@ -199,6 +270,10 @@ const TERRAIN_COLOR = /* glsl */`
   float woods = veg * (1.0 - rocky) * (1.0 - outcrop * 0.65) * smoothstep(0.2, 1.5, th_h);
   // 면의 굴곡: 나무 지붕, 바위 옆면의 가로 결 (턱이 해를 받는다)
   vec3 tBump = vec3(bumpBig.x, 0.0, bumpBig.y) * 0.45 * bigK + vec3(bumpFine.x, 0.0, bumpFine.y) * 0.4 * fineK;
+  if (uTex > 0.5) {  // 숲 지붕 사진의 굴곡 (설치 화면과 같은 세기 0.9)
+    vec3 cn = texture(uCanopyNTex, cuv).rgb * 2.0 - 1.0;
+    tBump = vec3(cn.x, 0.0, -cn.y) * 0.9;
+  }
   tBump *= woods;
   // 바위 면의 울퉁불퉁함: 면을 따라 가로(u)와 높이(h)로 잡음의 기울기를 재어 면을 흔든다.
   // 화강암은 결이 없이 둥글게 부푼 덩어리라 큰 굴곡 위주 (잔결이 세면 나뭇결처럼 보였다)
@@ -214,7 +289,7 @@ const TERRAIN_COLOR = /* glsl */`
   float tRough = mix(mix(0.86, 0.96, woods), 0.42, wetBand);
 `;
 
-function terrain(hm, peak, tone = 0) {
+function terrain(hm, peak, tone, tex) {
   const g = N, cell = PIXEL_M, half = ((g - 1) * cell) / 2;
   const hs = new Float32Array(g * g);
   for (let i = 0; i < g * g; i++) hs[i] = Math.max((hm[i] - SEA_LEVEL) / UNITS_PER_M, -25);
@@ -261,6 +336,7 @@ function terrain(hm, peak, tone = 0) {
     uPeak: { value: peak }, uTone: { value: tone }, uSurfTop: { value: SURF_TOP },
     uForestLow: { value: lin(FOREST_LOW) }, uForestHigh: { value: lin(FOREST_HIGH) }, uBroadleaf: { value: lin(BROADLEAF) },
     uGranite: { value: lin(GRANITE) }, uSurf: { value: lin(SURF) }, uSeabed: { value: lin(SEABED) },
+    uTex: tex.has, uCanopyTex: tex.canopy, uCanopyNTex: tex.canopyN, uGraniteTex: tex.granite,
   };
   material.onBeforeCompile = (shader) => {
     Object.assign(shader.uniforms, uniforms);
@@ -481,7 +557,13 @@ uniform float uShoreHalf;
 uniform vec3 uFoam;
 uniform vec3 uShallow;
 uniform float uShallowMix;
+uniform float uReflGain;
+uniform float uWaveAmp;
+uniform float uHazeDist;
+uniform vec3 uHazeCol;
 varying vec3 vWorld;
+float seaFoam = 0.0;
+${SKY_SAMPLE}
 float sh_hash(vec2 p) { p = mod(floor(p + 0.5), 289.0); return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float sh_noise(vec2 p) {
   vec2 i = floor(p), f = fract(p);
@@ -505,7 +587,37 @@ const SEA_COLOR = /* glsl */`
     // 그 바깥의 옅은 거품 띠: 물가를 따라 몇 겹, 끊기고 흐려진다
     float lace = (1.0 - smoothstep(4.0, 26.0, dm)) * smoothstep(0.62, 0.9, sin(dm * 0.75 - n2 * 7.0) * 0.5 + 0.5)
       * smoothstep(0.35, 0.7, n1) * 0.45;
-    diffuseColor.rgb = mix(diffuseColor.rgb, uFoam, clamp(contact * (0.55 + 0.45 * n1) + lace, 0.0, 0.9));
+    seaFoam = clamp(contact * (0.55 + 0.45 * n1) + lace, 0.0, 0.9);
+    diffuseColor.rgb = mix(diffuseColor.rgb, uFoam, seaFoam);
+  }
+`;
+
+// 바다가 하늘을 비춘다 (2026-11-11 3D 검수 2번: 전에는 하늘을 비추지 않는 짙은 판이라 "칠한 판"처럼 보였다).
+// 비스듬히 볼수록(먼 바다) 하늘이 많이 비친다 (프레넬). 물결 결은 두 겹의 잡음 기울기, 멀면 잔결을 흐린다.
+// 반사 화면을 따로 그리지 않아 가볍다 (섬은 비치지 않는다)
+const SEA_REFLECT = /* glsl */`
+  {
+    vec3 V = normalize(vWorld - cameraPosition);
+    vec2 w = vWorld.xz;
+    float fwW = length(fwidth(w));
+    float kNear = 1.0 - smoothstep(0.8, 5.0, fwW);
+    float kFar = 1.0 - smoothstep(6.0, 40.0, fwW);
+    // 세 겹 (큰 너울, 잔물결, 잔결). 가로로 조금만 길게: 많이 늘리면 붓으로 그은 가로줄이 되었다
+    #define SEA_H(q) (sh_noise((q) * vec2(0.035, 0.05)) * kFar + sh_noise((q) * vec2(0.13, 0.19) + 3.0) * 0.5 * kFar       + sh_noise((q) * vec2(0.45, 0.6) + 7.0) * 0.25 * kNear)
+    float h0 = SEA_H(w);
+    float dx = (SEA_H(w + vec2(0.7, 0.0)) - h0) / 0.7;
+    float dz = (SEA_H(w + vec2(0.0, 0.7)) - h0) / 0.7;
+    vec3 Nw = normalize(vec3(-dx * uWaveAmp, 1.0, -dz * uWaveAmp));
+    vec3 R = reflect(V, Nw);
+    R.y = max(R.y, 0.11);  // 물결 면은 보는 쪽으로 기울어 수평선 바로 위보다 높은(짙은) 하늘을 비춘다 (사진: 먼 바다도 짙은 파랑)
+    float cosT = clamp(dot(-V, Nw), 0.0, 1.0);
+    float F = 0.02 + 0.98 * pow(1.0 - cosT, 5.0);
+    // 바다에는 하늘의 높이별 색만 비친다: 구름 무늬까지 비추면 먼 바다에 세로 줄이 섰다 (먼 곳의 물결 면은 거의 같은 높이를 비춘다)
+    vec3 refl = skyGrad(asin(clamp(normalize(R).y, 0.0, 1.0)) / radians(uSkyTopDeg)) * uSkyTint * uReflGain;
+    outgoingLight = mix(outgoingLight, refl, clamp(F * 0.6, 0.0, 0.42) * (1.0 - seaFoam));  // 물결에 흩어져 거울보다 덜 비친다
+    // 먼 바다의 푸른 안개 (장면 안개 대신): 수평선까지 고르게 짙어져, 멀리서 결이 갑자기 끊긴 평평한 띠가 되지 않게
+    float dd = length(vWorld - cameraPosition);
+    outgoingLight = mix(outgoingLight, uHazeCol, 1.0 - exp(-dd / uHazeDist));
   }
 `;
 
@@ -600,8 +712,23 @@ export function createIslandView(canvas, { heightmap, elements, mood, seedText, 
   const horizonRGB = sunset ? SUNSET_HORIZON : SKY_HORIZON;
   const sky = new Color().setRGB(...horizonRGB, SRGBColorSpace);  // 안개 색
   const scene = new Scene();
-  const skyTex = skyBackground(skyRGB, sunset ? SUNSET_MID : SKY_MID, horizonRGB);
-  scene.background = skyTex;
+  const lin = (rgb) => new Color().setRGB(...rgb, SRGBColorSpace);
+
+  // 하늘 공: 카메라를 따라다니는 큰 공 안쪽에 하늘을 그린다 (사진을 읽기 전에는 계산한 그러데이션)
+  const skyUniforms = {
+    uSky: { value: null }, uSkyHas: { value: 0 }, uSkyAz0: { value: MathUtils.degToRad(10.5) },  // 띠의 가운데를 처음 보는 쪽으로
+    uSkyTopDeg: { value: SKY_JSON.top_deg }, uSkyTop: { value: lin(skyRGB) }, uSkyMid: { value: lin(sunset ? SUNSET_MID : SKY_MID) },
+    uSkyHorizon: { value: lin(horizonRGB) }, uSkyTint: { value: lin([1, 1, 1]) }, uSkyWarm: { value: lin(SUNSET_WARM) },
+    uSkyWarmMix: { value: 0 },
+  };
+  const skyMesh = new Mesh(new SphereGeometry(1, 48, 24), new ShaderMaterial({
+    uniforms: skyUniforms, vertexShader: SKY_VERT, fragmentShader: SKY_FRAG, side: BackSide, depthWrite: false,
+    depthTest: false, fog: false, toneMapped: false,
+  }));
+  skyMesh.renderOrder = -10;
+  skyMesh.frustumCulled = false;
+  scene.add(skyMesh);
+  const tex = { has: { value: 0 }, canopy: { value: null }, canopyN: { value: null }, granite: { value: null } };
 
   let top = SEA_LEVEL;
   for (const v of heightmap) top = Math.max(top, v);
@@ -614,7 +741,7 @@ export function createIslandView(canvas, { heightmap, elements, mood, seedText, 
   scene.fog = new Fog(sky, 1, 2);  // 거리는 카메라 거리에 맞춰 place()에서
 
   const island = new Group();
-  island.add(terrain(heightmap, peak, tone));
+  island.add(terrain(heightmap, peak, tone, tex));
   const rand = rng(seedText);
   const boats = [];  // 배경화면을 찍을 때 섬 곁으로 당겨 온다 (snapshot pullBoats)
   for (const e of elements) {
@@ -628,11 +755,13 @@ export function createIslandView(canvas, { heightmap, elements, mood, seedText, 
   scene.add(island);
 
   // 불투명: 바다 밑 지형의 네모난 끝이 비치지 않게. 잔물결 무늬(2026-10-12): 전에는 한 가지 색 판이라 섬이 떠 보였다
-  const seaMat = new MeshStandardMaterial({ roughness: 0.32, metalness: 0.0, map: rippleTexture(radius) });
+  // 2026-11-11: 그린 잔물결 무늬(rippleTexture)는 하늘을 비추는 물결 결과 겹쳐 가로 줄무늬가 되어 뺐다
+  const seaMat = new MeshStandardMaterial({ roughness: 0.32, metalness: 0.0 });
   seaMat.color.setRGB(...(sunset ? SUNSET_SEA : SEA), SRGBColorSpace);
   if (sunset) seaMat.emissive.setRGB(...SUNSET_SEA_GLOW, SRGBColorSpace);
-  const lin = (rgb) => new Color().setRGB(...rgb, SRGBColorSpace);
   const shoreUniforms = {
+    ...skyUniforms, uReflGain: { value: sunset ? 0.85 : 1.0 }, uWaveAmp: { value: 0.9 },
+    uHazeDist: { value: 1e5 }, uHazeCol: { value: lin(horizonRGB) },
     uShore: { value: shoreTexture(heightmap) }, uShoreSpan: { value: SHORE_CELLS * PIXEL_M },
     uShoreHalf: { value: ((N - 1) * PIXEL_M) / 2 }, uFoam: { value: lin(SURF) }, uShallow: { value: lin(SHALLOW) },
     uShallowMix: { value: sunset ? 0.12 : 0.4 },
@@ -644,8 +773,10 @@ export function createIslandView(canvas, { heightmap, elements, mood, seedText, 
       .replace("#include <begin_vertex>", "#include <begin_vertex>\nvWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;");
     shader.fragmentShader = shader.fragmentShader
       .replace("#include <common>", `#include <common>\n${SEA_COMMON}`)
-      .replace("#include <map_fragment>", `#include <map_fragment>\n${SEA_COLOR}`);
+      .replace("#include <map_fragment>", `#include <map_fragment>\n${SEA_COLOR}`)
+      .replace("#include <opaque_fragment>", `${SEA_REFLECT}\n#include <opaque_fragment>`);
   };
+  seaMat.fog = false;  // 바다는 스스로 안개를 친다 (SEA_REFLECT)
   const sea = new Mesh(new CircleGeometry(radius * 60, 96), seaMat);  // 끝이 안개 너머로 사라지게 넓게
   sea.rotation.x = -Math.PI / 2;
   scene.add(sea);
@@ -684,6 +815,7 @@ export function createIslandView(canvas, { heightmap, elements, mood, seedText, 
     const dist = (view.land ? landR : radius) / Math.tan(halfH) / view.fill;
     scene.fog.near = dist * 0.55;  // 설치 화면처럼 섬에도 옅은 안개, 수평선은 하늘과 섞이게
     scene.fog.far = dist * 3.2;
+    shoreUniforms.uHazeDist.value = dist * 6;
     camera.position.set(
       Math.sin(view.azimuth) * Math.cos(view.elevation) * dist,
       view.target + Math.sin(view.elevation) * dist,
@@ -691,8 +823,8 @@ export function createIslandView(canvas, { heightmap, elements, mood, seedText, 
     );
     camera.lookAt(0, view.target, 0);
     camera.updateProjectionMatrix();
-    // 수평선은 화면 가운데보다 tan(내려다보는 각)/tan(시야 반각)의 절반만큼 위에 있다
-    skyTex.paint(0.5 - Math.tan(view.elevation) / Math.tan(MathUtils.degToRad(camera.fov / 2)) / 2);
+    skyMesh.position.copy(camera.position);
+    skyMesh.scale.setScalar(camera.far * 0.9);
   }
 
   function resize() {
@@ -752,7 +884,43 @@ export function createIslandView(canvas, { heightmap, elements, mood, seedText, 
   render();
   setRunning(!document.hidden);
 
+  const loader = new TextureLoader();
+  const load = (name, srgb, mip = true) => loader.loadAsync(`img/${name}${IMG_V}`).then((t) => {
+    if (srgb) t.colorSpace = SRGBColorSpace;
+    t.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+    if (!mip) { t.generateMipmaps = false; t.minFilter = LinearFilter; }
+    return t;
+  });
+  const ready = Promise.all([
+    load("sky_pano.jpg", true, false).then((t) => {
+      t.wrapS = RepeatWrapping;
+      t.wrapT = ClampToEdgeWrapping;
+      skyUniforms.uSky.value = t;
+      skyUniforms.uSkyHas.value = 1;
+      skyUniforms.uSkyTop.value = lin(SKY_JSON.top);
+      skyUniforms.uSkyHorizon.value = lin(SKY_JSON.horizon);
+      skyUniforms.uSkyMid.value = lin(SKY_JSON.top.map((v, i) => (v + SKY_JSON.horizon[i]) / 2));
+      shoreUniforms.uHazeCol.value = lin(SEA_HAZE);  // 먼 바다는 하늘보다 짙은 푸른 안개: 수평선이 또렷하게 (사진 32번)
+      scene.fog.color.copy(lin(SKY_JSON.horizon));
+      if (sunset) {
+        skyUniforms.uSkyTint.value = lin(SUNSET_TINT);
+        skyUniforms.uSkyWarmMix.value = 0.45;
+        scene.fog.color.copy(lin(SUNSET_HORIZON));
+        shoreUniforms.uHazeCol.value = lin(SUNSET_HORIZON);
+      }
+    }),
+    Promise.all([load("canopy.jpg", false), load("canopy_n.jpg", false), load("granite.jpg", true)]).then(([c, n, g]) => {
+      for (const t of [c, n, g]) t.wrapS = t.wrapT = RepeatWrapping;
+      tex.canopy.value = c;
+      tex.canopyN.value = n;
+      tex.granite.value = g;
+      tex.has.value = 1;
+    }),
+  ]).then(() => true, () => false).then((ok) => { render(); return ok; });
+
   return {
+    /** 사진 재료를 다 읽으면 (못 읽으면 false) */
+    ready,
     /** 캔버스를 보이거나 숨긴 뒤 부른다: 보일 때만 크기를 맞추고 돈다 */
     setActive(on) {
       active = on;
@@ -774,14 +942,18 @@ export function createIslandView(canvas, { heightmap, elements, mood, seedText, 
           b.position.z = landC[1] + (dz / d) * to;
         }
       }
+      // 저장 그림은 한 번만 그리니 1.5배로 그려 줄인다 (계단과 자글거림이 준다, 2026-11-11 3D 검수 4번)
+      const ss = Math.max(w, h) * 1.5 <= Math.min(4096, renderer.capabilities.maxTextureSize) ? 1.5 : 1;
       renderer.setPixelRatio(1);
-      renderer.setSize(w, h, false);
+      renderer.setSize(Math.round(w * ss), Math.round(h * ss), false);
       place(w / h);
       render();
       const out = document.createElement("canvas");
       out.width = w;
       out.height = h;
-      out.getContext("2d").drawImage(canvas, 0, 0, w, h);
+      const octx = out.getContext("2d");
+      octx.imageSmoothingQuality = "high";
+      octx.drawImage(canvas, 0, 0, canvas.width, canvas.height, 0, 0, w, h);
       Object.assign(view, saved);
       boats.forEach((b, i) => b.position.copy(boatAt[i]));
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -789,6 +961,6 @@ export function createIslandView(canvas, { heightmap, elements, mood, seedText, 
       render();
       return out;
     },
-    skyColor: skyRGB,
+    get skyColor() { return skyUniforms.uSkyHas.value ? (sunset ? SUNSET_SKY : SKY_JSON.top) : skyRGB; },
   };
 }
